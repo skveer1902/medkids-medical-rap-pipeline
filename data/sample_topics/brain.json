@@ -1,0 +1,26 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by a medical reviewer before any real use.",
+  "topic": "Brain",
+  "category": "Body Systems",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Brain starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand the brain as a body control and information-processing organ",
+  "educational_content": "The brain is part of the nervous system. Nerves carry signals between the brain and the body. The brain helps control movement. The brain helps us think, learn, and remember. The brain receives and processes information from the senses. The brain works together with the rest of the body.",
+  "learning_objectives": [
+    "The brain is part of the nervous system.",
+    "The brain helps control movement.",
+    "The brain supports thinking, learning, and memory.",
+    "The brain receives and processes information from the senses."
+  ],
+  "forbidden_claims": [
+    {"claim": "The brain does every job alone", "pattern": "\\bbrain\\b.{0,20}\\b(does|controls?|runs?)\\b.{0,15}\\b(everything|every\\s+job|all\\s+by\\s+itself|alone)\\b"},
+    {"claim": "People only use 10% of their brain", "pattern": "\\b(only|just)\\b.{0,15}\\b(10|ten)\\s*(%|percent)\\b"},
+    {"claim": "The brain is a muscle", "pattern": "\\bbrain\\b\\s*(is|'s)\\s+(a\\s+)?muscle\\b"}
+  ],
+  "required_vocabulary": ["nervous system", "nerves", "signals", "senses", "information"]
+}

@@ -1,0 +1,27 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by a medical reviewer before any real use.",
+  "topic": "Heart",
+  "category": "Human Anatomy",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Heart starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand the heart as a muscle that pumps blood",
+  "educational_content": "The heart is a muscle. The heart pumps blood through the body. Blood travels through tubes called blood vessels. Blood carries oxygen and nutrients through the body. The heart works all day and all night to support the body. You can feel your heartbeat in your chest.",
+  "learning_objectives": [
+    "The heart is a muscle.",
+    "The heart pumps blood.",
+    "Blood carries oxygen and nutrients through the body.",
+    "The heart works continuously to support the body."
+  ],
+  "forbidden_claims": [
+    {"claim": "The heart makes blood", "pattern": "\\bheart\\w*\\b.{0,20}\\b(makes?|produces?|creates?)\\b.{0,10}\\bblood\\b"},
+    {"claim": "The heart makes feelings or love", "pattern": "\\bheart\\b.{0,15}\\b(makes?|gives?|holds?)\\b.{0,10}\\b(feelings?|love|emotions?)\\b"},
+    {"claim": "The heart is on the left side of the chest", "pattern": "\\bheart\\b.{0,25}\\bleft\\s+side\\b"},
+    {"claim": "The heart stops when you sleep", "pattern": "\\bheart\\b.{0,20}\\b(stops?|rests?)\\b.{0,20}\\b(sleep|night)\\b"}
+  ],
+  "required_vocabulary": ["muscle", "oxygen", "nutrients", "blood vessels", "heartbeat"]
+}

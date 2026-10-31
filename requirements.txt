@@ -1,0 +1,15 @@
+# Runtime
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30
+pydantic>=2.9,<3
+python-dotenv>=1.0
+sqlalchemy>=2.0,<3
+# HTTP client used by the Anthropic/OpenAI SDKs and FastAPI's TestClient
+httpx2>=2.0,<3
+
+# LLM providers (Claude is primary; OpenAI is optional)
+anthropic>=2.3,<3
+openai>=3.0,<4
+
+# Testing
+pytest>=8

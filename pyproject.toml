@@ -1,0 +1,15 @@
+[project]
+name = "medkids-medical-rap-pipeline"
+version = "0.1.0"
+description = "Human-supervised AI pipeline for medically accurate educational rap lyrics for children (MEDKids / RET)."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
