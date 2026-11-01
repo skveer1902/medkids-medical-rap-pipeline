@@ -151,6 +151,7 @@ class SourceDocumentOut(BaseModel):
     title: str
     uri: str | None
     version: str
+    content: str
     content_sha256: str
     is_approved_source: bool
     created_at: datetime

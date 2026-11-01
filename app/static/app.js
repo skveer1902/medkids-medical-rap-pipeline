@@ -363,10 +363,15 @@
       num_candidates: Number(f.num_candidates.value), include_intro: f.include_intro.checked, include_outro: f.include_outro.checked,
     };
     if (f.age_band.value) body.age_band = f.age_band.value;
+    if (f.auto_revise) body.auto_revise = f.auto_revise.checked;
+    if (f.demo_inject_error && f.demo_inject_error.checked) body.demo_inject_error = true; // demo page only
     await busy(f.querySelector("[type=submit]"), async () => {
       const r = await api("POST", "/api/raps/generate", body);
       const first = r.raps[0];
-      toast(`Wrote ${r.raps.length} rap${r.raps.length > 1 ? "s" : ""}. Status: ${STATUS_TEXT[first.status]}.`);
+      const fixes = first.auto_revision_attempts;
+      toast(`Wrote ${r.raps.length} rap${r.raps.length > 1 ? "s" : ""}. ` + (fixes
+        ? `Checks flagged problems and ${fixes} automatic fix${fixes > 1 ? "es" : ""} ran (now version ${first.current_version}). `
+        : "") + `Status: ${STATUS_TEXT[first.status]}.`);
       state.rapId = first.id;
       await loadRaps();
       showStep("review");
@@ -613,6 +618,7 @@
     if (rap.status === "approved") {
       box.append(el("button", { class: "btn primary", type: "button", text: "Download approved lyrics", onclick: (e) => busy(e.currentTarget, async () => {
         const data = await api("GET", `/api/raps/${rap.id}/export`);
+        if (window.MEDKIDS_DEMO && window.MEDKIDS_DEMO.showExport) { window.MEDKIDS_DEMO.showExport(data); return; }
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
         const a = el("a", { href: URL.createObjectURL(blob), download: `${data.topic_slug}-rap${data.rap_id}-v${data.version}.json` });
         document.body.append(a); a.click(); a.remove();
@@ -636,7 +642,7 @@
 
   // ---------- wiring ----------
   async function init() {
-    state.keys = load("medkids.keys", {});
+    state.keys = load("medkids.keys", window.MEDKIDS_DEMO ? { ...window.MEDKIDS_DEMO.keys } : {});
     state.role = load("medkids.role", "author");
     $("#role-select").value = state.role;
 
@@ -673,7 +679,7 @@
     showStep(load("medkids.step", "topic"));
     await refreshMe();
     await loadTopics();
-    if (!Object.keys(state.keys).length) openKeys();
+    if (!Object.keys(state.keys).length && !window.MEDKIDS_DEMO) openKeys();
   }
 
   document.addEventListener("DOMContentLoaded", init);

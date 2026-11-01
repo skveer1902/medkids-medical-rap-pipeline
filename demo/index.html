@@ -1,0 +1,206 @@
+<title>MEDKids Rap Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .demo-banner { display: flex; gap: .6rem; flex-wrap: wrap; align-items: baseline; padding: .6rem max(16px, 1.5rem); background: var(--beat-wash); border-bottom: 1px solid var(--beat); font-size: .9rem; color: var(--ink); }
+  .demo-banner span { color: var(--ink-soft); max-width: 110ch; }
+  .demo-only { color: #8a6800; font-weight: 700; }
+  .export-json { max-height: 55vh; overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-s); padding: .8rem; font-size: .8rem; white-space: pre; }
+  dialog { width: min(720px, 92vw); }
+  .form.gen { grid-template-columns: repeat(4, minmax(110px, 1fr)) auto auto auto auto auto; }
+  @media (max-width: 1080px) { .form.gen { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .form.gen { grid-template-columns: 1fr; } }
+</style>
+
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>MEDKids Rap Studio</h1>
+        <p class="brand-sub">Approved facts in, reviewed lyrics out</p>
+      </div>
+    </div>
+    <div class="session">
+      <label class="field inline">
+        <span>Working as</span>
+        <select id="role-select" aria-label="Role to act as">
+          <option value="author">Author</option>
+          <option value="medical_reviewer">Medical reviewer</option>
+          <option value="educator">Educator</option>
+        </select>
+      </label>
+      <span id="whoami" class="whoami" aria-live="polite"></span>
+      <button id="keys-btn" class="btn ghost" type="button">API keys</button>
+    </div>
+  </header>
+
+  <div class="demo-banner" role="note">
+    <strong>Interactive demo.</strong>
+    <span>Everything runs in your browser with the pipeline's offline mock AI, so lyrics are simple and nothing is saved. Switch roles with <em>Working as</em> to play author, medical reviewer and educator. A Heart rap is already waiting for review; the Brain topic has facts waiting for approval.</span>
+  </div>
+  <div class="topic-bar">
+    <label class="field inline grow">
+      <span>Topic</span>
+      <select id="topic-select" aria-label="Current topic"><option value="">No topics yet</option></select>
+    </label>
+    <span id="topic-meta" class="topic-meta"></span>
+  </div>
+
+  <div class="layout">
+    <nav class="steps" aria-label="Workflow">
+      <ol>
+        <li><button type="button" data-step="topic" class="step active"><span class="step-n">1</span><span class="step-t">Topic<small>Source text and goals</small></span></button></li>
+        <li><button type="button" data-step="facts" class="step"><span class="step-n">2</span><span class="step-t">Facts<small>Propose, then approve</small></span></button></li>
+        <li><button type="button" data-step="raps" class="step"><span class="step-n">3</span><span class="step-t">Raps<small>Generate and check</small></span></button></li>
+        <li><button type="button" data-step="review" class="step"><span class="step-n">4</span><span class="step-t">Review<small>Approve or send back</small></span></button></li>
+      </ol>
+      <p class="steps-note">Nothing reaches children until a medical reviewer and an educator both approve the same version.</p>
+    </nav>
+
+    <main id="main" tabindex="-1">
+      <!-- STEP 1: TOPIC -->
+      <section id="step-topic" class="panel" aria-labelledby="h-topic">
+        <div class="panel-head">
+          <h2 id="h-topic">Topic</h2>
+          <div class="actions"><button id="new-topic-btn" class="btn" type="button" data-needs="author">New topic</button></div>
+        </div>
+        <div id="topic-view"></div>
+        <form id="topic-form" class="form hidden" autocomplete="off">
+          <div class="form-row">
+            <span class="hint">Start from a sample:</span>
+            <div id="sample-buttons" class="chips"></div>
+          </div>
+          <div class="grid-2">
+            <label class="field"><span>Topic name</span><input name="topic" required maxlength="80" placeholder="Heart"></label>
+            <label class="field"><span>Category</span>
+              <select name="category">
+                <option>Human Anatomy</option><option>Body Parts</option><option>Body Systems</option>
+                <option>Organ Functions</option><option>Medical Professions</option><option>Health Education</option>
+              </select>
+            </label>
+            <label class="field"><span>Youngest age</span><input name="target_age_min" type="number" min="4" max="10" value="4" required></label>
+            <label class="field"><span>Oldest age</span><input name="target_age_max" type="number" min="4" max="10" value="6" required></label>
+          </div>
+          <label class="field"><span>Approved source text</span>
+            <textarea name="educational_content" rows="6" required placeholder="Paste the approved MEDKids educational text for this topic."></textarea>
+          </label>
+          <label class="field"><span>Learning objectives <em>one per line</em></span>
+            <textarea name="learning_objectives" rows="4" required placeholder="The heart is a muscle.&#10;The heart pumps blood."></textarea>
+          </label>
+          <label class="field"><span>Misconceptions to block <em>one per line, optional</em></span>
+            <textarea name="forbidden_claims" rows="3" placeholder="The heart makes blood"></textarea>
+          </label>
+          <label class="field"><span>Science words allowed <em>comma separated, optional</em></span>
+            <input name="required_vocabulary" placeholder="muscle, oxygen, blood vessels">
+          </label>
+          <label class="check"><input type="checkbox" name="source_is_approved"> This text comes from an approved MEDKids source document</label>
+          <label class="check"><input type="checkbox" name="is_demo_data"> Mark as demonstration data</label>
+          <div class="form-actions">
+            <button class="btn primary" type="submit">Create topic</button>
+            <button class="btn ghost" type="button" id="cancel-topic">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- STEP 2: FACTS -->
+      <section id="step-facts" class="panel hidden" aria-labelledby="h-facts">
+        <div class="panel-head">
+          <h2 id="h-facts">Facts</h2>
+          <div class="actions">
+            <button id="extract-btn" class="btn" type="button" data-needs="author">Propose facts from source</button>
+          </div>
+        </div>
+        <p class="lede">The AI only proposes facts. Each must quote the source word for word, or it is marked uncertain. A medical reviewer decides what the songwriter may use.</p>
+        <div id="facts-list" class="facts"></div>
+        <div class="form-actions sticky" data-needs="medical_reviewer" id="fact-review-bar">
+          <label class="field grow"><span>Note for the record <em>optional</em></span><input id="fact-note" maxlength="1000"></label>
+          <button id="approve-facts" class="btn primary" type="button">Approve selected</button>
+          <button id="reject-facts" class="btn danger" type="button">Reject selected</button>
+        </div>
+      </section>
+
+      <!-- STEP 3: RAPS -->
+      <section id="step-raps" class="panel hidden" aria-labelledby="h-raps">
+        <div class="panel-head">
+          <h2 id="h-raps">Raps</h2>
+        </div>
+        <form id="gen-form" class="form gen" data-needs="author">
+          <label class="field"><span>Age group</span>
+            <select name="age_band"><option value="">From topic</option><option value="4-6">Ages 4–6</option><option value="7-10">Ages 7–10</option></select>
+          </label>
+          <label class="field"><span>Style</span>
+            <select name="style"><option value="playful">Playful</option><option value="call_and_response">Call and response</option><option value="classic_boom_bap">Classic boom bap</option><option value="chant">Chant</option></select>
+          </label>
+          <label class="field"><span>Verses</span><input name="num_verses" type="number" min="2" max="4" value="2"></label>
+          <label class="field"><span>Versions</span><input name="num_candidates" type="number" min="1" max="3" value="1"></label>
+          <label class="check"><input type="checkbox" name="include_intro"> Intro</label>
+          <label class="check"><input type="checkbox" name="include_outro" checked> Outro</label>
+          <label class="check"><input type="checkbox" name="auto_revise" checked> Auto-fix problems</label>
+          <label class="check demo-only" title="Demo only: adds a known misconception so you can watch the checks catch and fix it"><input type="checkbox" name="demo_inject_error" id="demo-inject"> Slip in a mistake</label>
+          <button class="btn primary" type="submit">Write rap</button>
+        </form>
+        <div id="rap-list" class="rap-list"></div>
+      </section>
+
+      <!-- STEP 4: REVIEW / RAP DETAIL -->
+      <section id="step-review" class="panel hidden" aria-labelledby="h-review">
+        <div class="panel-head">
+          <h2 id="h-review">Review</h2>
+          <div class="actions" id="rap-actions"></div>
+        </div>
+        <div id="rap-empty" class="empty">Pick a rap from step 3 to review it.</div>
+        <div id="rap-detail" class="rap-detail hidden">
+          <article class="sheet" aria-label="Lyric sheet">
+            <header class="sheet-head">
+              <h3 id="rap-title"></h3>
+              <p id="rap-sub" class="sheet-sub"></p>
+            </header>
+            <div class="legend" aria-hidden="true">
+              <span><i class="mk ok"></i>Matches an approved fact</span>
+              <span><i class="mk review"></i>Needs a reviewer's eye</span>
+              <span><i class="mk bad"></i>Blocked</span>
+            </div>
+            <div id="lyrics"></div>
+            <p class="sheet-tip">Select a line to attach a note to it in your review.</p>
+          </article>
+          <aside class="checks">
+            <div id="gate-box"></div>
+            <div id="score-box"></div>
+            <details id="medical-box" open><summary>Medical accuracy</summary><div></div></details>
+            <details id="safety-box"><summary>Child safety</summary><div></div></details>
+            <div id="review-box"></div>
+            <details id="history-box"><summary>History</summary><div></div></details>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="keys-dialog" aria-labelledby="keys-title">
+    <form method="dialog" class="form">
+      <h2 id="keys-title">API keys</h2>
+      <p class="lede">In the demo these are filled in for you. In the real app you paste the keys from the <code>API_KEYS</code> line of your <code>.env</code> file.</p>
+      <label class="field"><span>Author key</span><input id="key-author" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Medical reviewer key</span><input id="key-medical_reviewer" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Educator key</span><input id="key-educator" autocomplete="off" spellcheck="false"></label>
+      <div class="form-actions">
+        <button class="btn primary" value="save" id="save-keys">Save keys</button>
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <form method="dialog" class="form">
+      <h2 id="export-title">Approved lyrics export</h2>
+      <p class="lede">The real app downloads this as a JSON file for the MEDKids CMS. Here it is in full.</p>
+      <pre id="export-json" class="export-json"></pre>
+      <div class="form-actions"><button class="btn primary" value="close">Close</button></div>
+    </form>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="demo-backend.js"></script>
+  <script src="app.js"></script>

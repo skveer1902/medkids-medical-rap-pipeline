@@ -133,7 +133,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--pulse); outline:
 .form-actions.sticky { position: sticky; bottom: 0; background: var(--paper); padding: 1rem 0; border-top: 1px solid var(--line); margin-top: 1rem; }
 
 .form.gen {
-  max-width: none; grid-template-columns: repeat(4, minmax(120px, 1fr)) auto auto auto; align-items: end;
+  max-width: none; grid-template-columns: repeat(4, minmax(120px, 1fr)) auto auto auto auto; align-items: end;
   background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 1rem; margin-bottom: 1.5rem;
 }
 
