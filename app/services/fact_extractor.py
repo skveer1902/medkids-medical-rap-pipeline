@@ -26,7 +26,7 @@ from app.utils.text_utils import normalize_for_match, overlap_ratio
 
 logger = get_logger(__name__)
 
-FACT_APPROVER_ROLES = {"medical_reviewer"}
+FACT_APPROVER_ROLES = {"reviewer"}
 
 
 def compile_forbidden_patterns(topic: Topic) -> list[re.Pattern[str]]:
@@ -135,7 +135,7 @@ def approve_facts(
 ) -> dict[str, list[str]]:
     """Human approval gate for facts. All-or-nothing: validates before applying."""
     if reviewer.role not in FACT_APPROVER_ROLES:
-        raise PermissionDeniedError("only a medical reviewer can approve or reject medical facts")
+        raise PermissionDeniedError("only a reviewer can approve or reject medical facts")
     by_key = {f.fact_key: f for f in topic.facts}
 
     unknown = [k for k in req.approve_fact_ids + req.reject_fact_ids if k not in by_key]

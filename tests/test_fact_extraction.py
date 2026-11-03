@@ -11,7 +11,7 @@ from app.models.schemas import FactApprovalRequest, ManualFactIn, TopicCreate
 from app.services.content_processor import process_source
 from app.services.fact_extractor import FactExtractor, approve_facts
 from app.services.topic_service import create_topic
-from tests.conftest import AUTHOR, EDUCATOR, MEDICAL, load_sample
+from tests.conftest import AUTHOR, REVIEWER, load_sample
 
 
 def test_extraction_creates_candidates_never_approved(session, heart_topic, mock):
@@ -90,15 +90,15 @@ def test_reextraction_skips_duplicates(session, heart_topic, mock):
     assert again == []
 
 
-def test_only_medical_reviewer_can_approve(session, heart_topic, mock):
+def test_only_reviewer_can_approve(session, heart_topic, mock):
     _, facts = FactExtractor(mock).extract(session, heart_topic)
     req = FactApprovalRequest(approve_fact_ids=[facts[0].fact_key])
-    for who in (AUTHOR, EDUCATOR):
+    for who in (AUTHOR,):
         with pytest.raises(PermissionDeniedError):
             approve_facts(session, heart_topic, req, who)
-    result = approve_facts(session, heart_topic, req, MEDICAL)
+    result = approve_facts(session, heart_topic, req, REVIEWER)
     assert result["approved"] == [facts[0].fact_key]
-    assert facts[0].status == "approved" and facts[0].reviewed_by == MEDICAL.name
+    assert facts[0].status == "approved" and facts[0].reviewed_by == REVIEWER.name
 
 
 def test_uncertain_facts_cannot_be_approved_and_request_is_atomic(session, heart_topic, mock):
@@ -114,7 +114,7 @@ def test_uncertain_facts_cannot_be_approved_and_request_is_atomic(session, heart
     assert uncertain.status == "uncertain"
     with pytest.raises(InputRejectedError):
         approve_facts(session, heart_topic,
-                      FactApprovalRequest(approve_fact_ids=[good.fact_key, uncertain.fact_key]), MEDICAL)
+                      FactApprovalRequest(approve_fact_ids=[good.fact_key, uncertain.fact_key]), REVIEWER)
     assert good.status == "candidate"  # nothing applied
 
 
@@ -123,12 +123,12 @@ def test_manual_fact_requires_verbatim_evidence(session, heart_topic):
     with pytest.raises(InputRejectedError):
         approve_facts(session, heart_topic, FactApprovalRequest(manual_facts=[
             ManualFactIn(text="The heart has four chambers", source_key=src, evidence_quote="four chambers inside")]),
-            MEDICAL)
+            REVIEWER)
     result = approve_facts(session, heart_topic, FactApprovalRequest(manual_facts=[
         ManualFactIn(text="Blood moves through blood vessels", source_key=src,
-                     evidence_quote="Blood travels through tubes called blood vessels")]), MEDICAL)
+                     evidence_quote="Blood travels through tubes called blood vessels")]), REVIEWER)
     added = next(f for f in heart_topic.facts if f.fact_key == result["added"][0])
-    assert added.status == "approved" and added.proposed_by == f"human:{MEDICAL.name}"
+    assert added.status == "approved" and added.proposed_by == f"human:{REVIEWER.name}"
 
 
 def test_source_processing_limits():

@@ -1,9 +1,0 @@
-.env
-.venv
-venv
-.git
-__pycache__
-*.pyc
-.pytest_cache
-data/*.db
-data/outputs/*

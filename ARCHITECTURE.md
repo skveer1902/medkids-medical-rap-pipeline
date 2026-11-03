@@ -1,5 +1,8 @@
 # MEDKids Medical Rap Pipeline — Architecture
 
+> Internal tool: it runs on one computer via `run.bat` (local mode, no API keys) and is not deployed. The
+> production-hardening notes in §9 apply only if that ever changes.
+
 This document describes the MVP as built. It follows the RET research proposal *MEDKids Medical Rap Pipeline
 Research* (18 Oct 2026): lock a curated fact ledger before creative generation, trace each factual lyric claim
 to a source, separate hard gates from soft scores, and block publication until human review is complete. It
@@ -94,9 +97,10 @@ validation_failed ──revise (auto ≤3)──▶ draft
 - `approved`, `rejected` and `revision_requested` can only be entered with a reviewer principal. The state
   machine itself raises if called with a system actor (tested).
 - Approval requires: status `pending_review`; the current version's medical and safety reports not `failed`;
-  all hard gates passed; no critical reviewer comment on that version; not demo data in production; and one
-  approval from **each** role in `REQUIRED_APPROVAL_ROLES` (default `medical_reviewer,educator`), from distinct
-  people, **for the current version**. A revision creates a new version, so earlier approvals stop counting.
+  all hard gates passed; no critical reviewer comment on that version; and one human approval from the
+  `reviewer` role (`REQUIRED_APPROVAL_ROLES`, default `reviewer`) **for the current version**. RET has one
+  reviewer, who is usually also the author; the separate roles keep writing and approving as distinct steps.
+  Older configs that list `medical_reviewer`/`educator` are read as `reviewer`. A revision creates a new version, so earlier approvals stop counting.
 - After `MAX_REVISION_ATTEMPTS` automatic revisions (including attempts that change nothing), the rap stays
   `validation_failed` with `needs_human_intervention=true`. The loop is a bounded `while` with the counter
   persisted on the rap, so it cannot run forever.
@@ -195,5 +199,5 @@ attempts against extraction, validation and revision.
 
 Rhyme, syllable, coverage and "medical line" detection are lexical heuristics. They will misjudge slant
 rhymes, metaphors and paraphrases. Misconception regexes catch only phrasings they anticipate. These modules
-are triage aids, and the human medical reviewer and educator remain the authority. Calibrate them against
+are triage aids, and the human reviewer remains the authority. Calibrate them against
 reviewer ratings (inter-rater agreement) before relying on thresholds.

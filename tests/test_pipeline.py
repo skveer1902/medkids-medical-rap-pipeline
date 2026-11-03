@@ -12,7 +12,7 @@ from app.models.database import LLMCallLog, Rap, SchemaMeta, WorkflowEvent, init
 from app.models.schemas import RapGenerateRequest
 from app.services.pipeline import Pipeline, current_version
 from app.services.workflow import transition
-from tests.conftest import AUTHOR, MEDICAL, make_settings
+from tests.conftest import AUTHOR, REVIEWER, make_settings
 
 
 def rap_json(bad_line: str | None = "The heart makes blood!") -> str:
@@ -130,7 +130,7 @@ def test_workflow_guards(pipeline, session, approved_heart):
     with pytest.raises(WorkflowError, match="human reviewer"):
         transition(session, rap, "approved", AUTHOR)
     with pytest.raises(WorkflowError):
-        transition(session, rap, "draft", MEDICAL)  # pending_review -> draft is not a valid edge
+        transition(session, rap, "draft", REVIEWER)  # pending_review -> draft is not a valid edge
 
 
 def test_multiple_candidates_capped(pipeline, session, approved_heart):

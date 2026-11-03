@@ -42,13 +42,6 @@ code { font-size: .92em; background: var(--pulse-wash); padding: 0 .3em; border-
   padding: .9rem 1.5rem; background: var(--ink); color: #fff;
 }
 .brand { display: flex; align-items: center; gap: .8rem; }
-.brand-mark {
-  width: 34px; height: 34px; border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%, var(--ink) 0 34%, transparent 35%),
-    conic-gradient(var(--beat) 0 25%, var(--pulse) 0 100%);
-}
-.brand-sub { margin: 0; font-size: .85rem; color: #b9c6d6; }
 .session { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 .session .field span { color: #b9c6d6; }
 .session select { background: #2b3b4f; color: #fff; border-color: #3d5068; }

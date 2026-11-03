@@ -12,19 +12,14 @@
 <body>
   <header class="masthead">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <div>
-        <h1>MEDKids Rap Studio</h1>
-        <p class="brand-sub">Approved facts in, reviewed lyrics out</p>
-      </div>
+      <h1>MEDKids Rap Studio</h1>
     </div>
     <div class="session">
       <label class="field inline">
         <span>Working as</span>
         <select id="role-select" aria-label="Role to act as">
           <option value="author">Author</option>
-          <option value="medical_reviewer">Medical reviewer</option>
-          <option value="educator">Educator</option>
+          <option value="reviewer">Reviewer</option>
         </select>
       </label>
       <span id="whoami" class="whoami" aria-live="polite"></span>
@@ -48,7 +43,7 @@
         <li><button type="button" data-step="raps" class="step"><span class="step-n">3</span><span class="step-t">Raps<small>Generate and check</small></span></button></li>
         <li><button type="button" data-step="review" class="step"><span class="step-n">4</span><span class="step-t">Review<small>Approve or send back</small></span></button></li>
       </ol>
-      <p class="steps-note">Nothing reaches children until a medical reviewer and an educator both approve the same version.</p>
+      <p class="steps-note">Nothing is final until the reviewer approves the current version.</p>
     </nav>
 
     <main id="main" tabindex="-1">
@@ -104,9 +99,9 @@
             <button id="extract-btn" class="btn" type="button" data-needs="author">Propose facts from source</button>
           </div>
         </div>
-        <p class="lede">The AI only proposes facts. Each must quote the source word for word, or it is marked uncertain. A medical reviewer decides what the songwriter may use.</p>
+        <p class="lede">The AI only proposes facts. Each must quote the source word for word, or it is marked uncertain. The reviewer decides what the songwriter may use.</p>
         <div id="facts-list" class="facts"></div>
-        <div class="form-actions sticky" data-needs="medical_reviewer" id="fact-review-bar">
+        <div class="form-actions sticky" data-needs="reviewer" id="fact-review-bar">
           <label class="field grow"><span>Note for the record <em>optional</em></span><input id="fact-note" maxlength="1000"></label>
           <button id="approve-facts" class="btn primary" type="button">Approve selected</button>
           <button id="reject-facts" class="btn danger" type="button">Reject selected</button>
@@ -174,8 +169,7 @@
       <h2 id="keys-title">API keys</h2>
       <p class="lede">Paste the keys from the <code>API_KEYS</code> line of your <code>.env</code> file. They stay in this browser only.</p>
       <label class="field"><span>Author key</span><input id="key-author" autocomplete="off" spellcheck="false"></label>
-      <label class="field"><span>Medical reviewer key</span><input id="key-medical_reviewer" autocomplete="off" spellcheck="false"></label>
-      <label class="field"><span>Educator key</span><input id="key-educator" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Reviewer key</span><input id="key-reviewer" autocomplete="off" spellcheck="false"></label>
       <div class="form-actions">
         <button class="btn primary" value="save" id="save-keys">Save keys</button>
         <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>

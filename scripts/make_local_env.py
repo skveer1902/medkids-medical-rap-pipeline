@@ -23,8 +23,7 @@ def main() -> int:
     template = (ROOT / ".env.example").read_text(encoding="utf-8")
     keys = {
         "author": ("local-author", secrets.token_urlsafe(18)),
-        "medical_reviewer": ("local-medical-reviewer", secrets.token_urlsafe(18)),
-        "educator": ("local-educator", secrets.token_urlsafe(18)),
+        "reviewer": ("local-reviewer", secrets.token_urlsafe(18)),
     }
     api_keys = ",".join(f"{name}:{role}:{key}" for role, (name, key) in keys.items())
     content = re.sub(r"^API_KEYS=.*$", f"API_KEYS={api_keys}", template, flags=re.M)

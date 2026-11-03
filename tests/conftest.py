@@ -23,15 +23,13 @@ ROOT = Path(__file__).resolve().parent.parent
 
 KEYS = {
     "author": "author-key-0123456789",
-    "medical": "medical-key-0123456789",
-    "medical2": "medical2-key-012345678",
-    "educator": "educator-key-012345678",
+    "reviewer": "reviewer-key-012345678",
+    "reviewer2": "reviewer2-key-01234567",
     "admin": "admin-key-0123456789ab",
 }
 
 AUTHOR = Principal("ann-author", "author")
-MEDICAL = Principal("dr-mo", "medical_reviewer")
-EDUCATOR = Principal("ed-teacher", "educator")
+REVIEWER = Principal("rita-reviewer", "reviewer")
 
 
 def make_settings(tmp_path: Path, **overrides) -> Settings:
@@ -43,9 +41,8 @@ def make_settings(tmp_path: Path, **overrides) -> Settings:
         log_level="WARNING",
         api_keys=[
             ApiKeyEntry(name="ann-author", role="author", key=SecretStr(KEYS["author"])),
-            ApiKeyEntry(name="dr-mo", role="medical_reviewer", key=SecretStr(KEYS["medical"])),
-            ApiKeyEntry(name="dr-lee", role="medical_reviewer", key=SecretStr(KEYS["medical2"])),
-            ApiKeyEntry(name="ed-teacher", role="educator", key=SecretStr(KEYS["educator"])),
+            ApiKeyEntry(name="rita-reviewer", role="reviewer", key=SecretStr(KEYS["reviewer"])),
+            ApiKeyEntry(name="rob-reviewer", role="reviewer", key=SecretStr(KEYS["reviewer2"])),
             ApiKeyEntry(name="root", role="admin", key=SecretStr(KEYS["admin"])),
         ],
     )
@@ -110,7 +107,7 @@ def approved_heart(session, heart_topic, mock):
     _, facts = FactExtractor(mock).extract(session, heart_topic)
     approve_facts(session, heart_topic,
                   FactApprovalRequest(approve_fact_ids=[f.fact_key for f in facts if f.status == "candidate"]),
-                  MEDICAL)
+                  REVIEWER)
     session.commit()
     mock.requests.clear()
     return heart_topic

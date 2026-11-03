@@ -1,5 +1,8 @@
 # MEDKids Medical Rap Pipeline (MVP)
 
+> **Quick start (Windows):** double-click **`run.bat`**. It sets everything up on first run, starts the app and
+> opens it in your browser at <http://127.0.0.1:8000/>. No API keys needed. Keep the window open while you use it.
+
 A human-supervised AI pipeline from Rebecca Everlene Trust Company (RET). It turns **approved** medical facts into
 age-appropriate educational rap lyrics for children aged 4–10. The pipeline validates every lyric line against
 those approved facts and checks it for child safety. It scores quality with an experimental rubric and fixes
@@ -8,7 +11,7 @@ failing lines through capped, targeted revision. **Nothing is published without 
 ```
 Topic input → source processing → fact extraction (LLM proposes) → HUMAN fact approval → age adaptation
 → prompt construction → Claude generation → medical validation → child-safety validation → quality scoring
-→ targeted revision (max 3) → HUMAN review (medical reviewer + educator) → approved lyrics storage / export
+→ targeted revision (max 3) → HUMAN review (reviewer approves) → approved lyrics storage / export
 ```
 
 Medical accuracy always takes priority over rhyme. See [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
@@ -22,7 +25,7 @@ Medical accuracy always takes priority over rhyme. See [ARCHITECTURE.md](ARCHITE
 ## 1. Prerequisites
 
 - Python **3.10+** (tested on 3.13; Windows launcher verified with Anaconda 3.10)
-- pip, and optionally Docker
+- pip
 - An Anthropic API key, only if you want real Claude generation. Everything else, including all tests,
   runs offline with the deterministic mock provider.
 
@@ -52,10 +55,11 @@ pip install -r requirements.txt
 cp .env.example .env          # Windows: copy .env.example .env
 ```
 
-Edit `.env`. The minimum for local use is a set of API keys for the roles you need:
+Edit `.env` only if you want to change settings (for example to enable Claude). `run.bat` uses **local mode**,
+so no keys are needed. If you run the API without `run.bat`, either use local mode or add API keys:
 
 ```
-API_KEYS=ann:author:<random-key>,mo:medical_reviewer:<random-key>,ed:educator:<random-key>
+API_KEYS=me:author:<random-key>,me-review:reviewer:<random-key>
 ```
 
 Generate keys with `python -c "import secrets;print(secrets.token_urlsafe(24))"`. Callers send them as an
@@ -64,12 +68,12 @@ Generate keys with `python -c "import secrets;print(secrets.token_urlsafe(24))"`
 | Role | Can do |
 |---|---|
 | `author` | create topics, extract candidate facts, generate / validate / evaluate / revise raps |
-| `medical_reviewer` | approve or reject facts; review raps (required approver) |
-| `educator` | review raps (required approver) |
+| `reviewer` | approve or reject facts; review and approve raps (the one human approval) |
 | `admin` | author permissions; cannot approve facts or raps |
 
-**Development-only shortcut:** set `AUTH_MODE=dev` **and** `DEV_AUTH_ENABLED=true`, then send
-`X-Dev-User: name:role`. The app refuses to start with this enabled when `APP_ENV=production`.
+**Local mode** (what `run.bat` uses): `AUTH_MODE=dev` **and** `DEV_AUTH_ENABLED=true`. The web app then needs
+no keys; API callers send `X-Dev-User: name:role`. Author and reviewer are usually the same person here; the
+roles just keep writing and approving as separate steps.
 
 ## 5. Initialise the database
 
@@ -90,19 +94,18 @@ uvicorn app.main:app --reload
 
 ## 7. Web app (MEDKids Rap Studio)
 
-Open <http://127.0.0.1:8000/>. On Windows, `run_app.bat` sets everything up and opens it for you.
+Open <http://127.0.0.1:8000/>. On Windows, `run.bat` sets everything up and opens it for you.
 
-1. Click **API keys** and paste the author, medical reviewer and educator keys from the `API_KEYS` line of `.env`.
-   They are kept only in this browser.
+1. In local mode there is nothing to sign in to. (With API keys instead, click **API keys** and paste them.)
 2. Use **Working as** (top right) to switch roles. Each role only sees the actions it is allowed to take, and the
    server enforces the same rules.
 3. Follow the four steps:
    - **Topic:** create a topic (or load the Heart or Brain sample).
-   - **Facts:** an author proposes facts, then a medical reviewer ticks and approves them.
+   - **Facts:** as Author, propose facts; switch to Reviewer to tick and approve them.
    - **Raps:** an author writes a rap; checks and auto-fixes run automatically.
    - **Review:** read the lyric sheet. Each line's margin colour shows whether it matches an approved fact (teal),
      needs a reviewer's eye (amber) or is blocked (red). Click lines to attach notes, then approve, request
-     changes, comment or reject. Once both reviewers approve, download the approved lyrics.
+     changes, comment or reject. Once the reviewer approves, download the approved lyrics.
 
 The web app is plain HTML, CSS and JavaScript in `app/static/` (no build step). It calls the same authenticated
 API as everything else, and all server text is inserted as text, never as HTML.
@@ -118,19 +121,18 @@ Click **Authorize**, or add an `X-API-Key` header, to call the protected endpoin
 ### Typical API workflow
 
 ```bash
-A="X-API-Key: <author-key>"; M="X-API-Key: <medical-key>"; E="X-API-Key: <educator-key>"
+A="X-API-Key: <author-key>"; R="X-API-Key: <reviewer-key>"
 # 1. topic  (see data/sample_topics/heart.json for a full example body)
 curl -X POST localhost:8000/api/topics -H "$A" -H 'content-type: application/json' -d @topic.json
 # 2. candidate facts (never auto-approved)
 curl -X POST localhost:8000/api/topics/1/facts/extract -H "$A"
-# 3. medical reviewer approves selected facts
-curl -X POST localhost:8000/api/topics/1/facts/approve -H "$M" -H 'content-type: application/json' \
+# 3. reviewer approves selected facts
+curl -X POST localhost:8000/api/topics/1/facts/approve -H "$R" -H 'content-type: application/json' \
      -d '{"approve_fact_ids": ["heart_fact_001","heart_fact_002"]}'
 # 4. generate (runs validation, scoring and up to 3 targeted auto-revisions)
 curl -X POST localhost:8000/api/raps/generate -H "$A" -H 'content-type: application/json' -d '{"topic_id": 1}'
-# 5. human review: both required roles must approve the SAME version
-curl -X POST localhost:8000/api/raps/1/review -H "$M" -H 'content-type: application/json' -d '{"decision":"approve"}'
-curl -X POST localhost:8000/api/raps/1/review -H "$E" -H 'content-type: application/json' -d '{"decision":"approve"}'
+# 5. human review: the reviewer approves the current version
+curl -X POST localhost:8000/api/raps/1/review -H "$R" -H 'content-type: application/json' -d '{"decision":"approve"}'
 curl localhost:8000/api/raps/1/export -H "$A"
 ```
 
@@ -206,7 +208,7 @@ To use OpenAI instead, set `LLM_PROVIDER=openai`, `OPENAI_API_KEY` and `OPENAI_M
 | Symptom | Fix |
 |---|---|
 | `401 missing credentials` | Send `X-API-Key`; make sure the key is listed in `API_KEYS` (restart after editing `.env`). |
-| `403 role ... not allowed` | Use a key with the right role (for example, only `medical_reviewer` can approve facts). |
+| `403 role ... not allowed` | Use a key with the right role (for example, only `reviewer` can approve facts). |
 | `409 topic has no approved facts` | Run `/facts/extract`, then `/facts/approve` with a medical-reviewer key. |
 | `409 approval blocked: ...` | Read `details.blockers`. Fix validation failures (revise) or wait for status `pending_review`. |
 | `CLAUDE_MODEL must be set` at startup | Set `CLAUDE_MODEL` or switch back to `LLM_PROVIDER=mock`. |
@@ -216,14 +218,6 @@ To use OpenAI instead, set `LLM_PROVIDER=openai`, `OPENAI_API_KEY` and `OPENAI_M
 | `Database schema version ... != code version` | You have an old DB; delete `data/medkids.db` in development or migrate. |
 | `ModuleNotFoundError: app` | Run commands from the project root. |
 | Rap stuck in `validation_failed` with `needs_human_intervention` | The 3 auto-revisions did not fix it. Inspect `/history`, then edit facts and regenerate, or reject. |
-
-## Docker
-
-```bash
-docker build -t medkids-rap .
-docker run --rm -p 8000:8000 --env-file .env medkids-rap
-docker run --rm medkids-rap pytest            # run the test suite in the image
-```
 
 ## Project layout
 

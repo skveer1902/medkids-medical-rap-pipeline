@@ -3,7 +3,7 @@
 (() => {
   "use strict";
 
-  const ROLES = { author: "Author", medical_reviewer: "Medical reviewer", educator: "Educator" };
+  const ROLES = { author: "Author", reviewer: "Reviewer" };
   const STATUS_TEXT = {
     draft: "Draft", validation_failed: "Failed checks", pending_review: "Waiting for review",
     revision_requested: "Changes requested", approved: "Approved", rejected: "Rejected",
@@ -21,7 +21,7 @@
   };
 
   const state = {
-    keys: {}, role: "author", me: null, topics: [], topicId: null, topic: null,
+    keys: {}, role: "author", local: false, me: null, topics: [], topicId: null, topic: null,
     raps: [], rapId: null, rap: null, history: null, selected: new Set(), step: "topic", samples: null,
   };
 
@@ -74,7 +74,8 @@
   async function api(method, path, body) {
     const key = state.keys[state.role];
     const headers = { Accept: "application/json" };
-    if (key) headers["X-API-Key"] = key;
+    if (state.local) headers["X-Dev-User"] = `${ROLES[state.role]}:${state.role}`;
+    else if (key) headers["X-API-Key"] = key;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
@@ -93,7 +94,7 @@
   // ---------- session ----------
   async function refreshMe() {
     const who = $("#whoami");
-    if (!state.keys[state.role]) {
+    if (!state.local && !state.keys[state.role]) {
       state.me = null;
       who.textContent = "No key for this role";
       who.className = "whoami err";
@@ -102,7 +103,7 @@
     }
     try {
       state.me = await api("GET", "/api/me");
-      who.textContent = `Signed in as ${state.me.name}`;
+      who.textContent = state.local ? "Local mode" : `Signed in as ${state.me.name}`;
       who.className = "whoami ok";
     } catch (err) {
       state.me = null;
@@ -278,9 +279,9 @@
     if (!t.facts.length) {
       list.append(el("div", { class: "empty" }, can("author")
         ? "No facts yet. Use \"Propose facts from source\" to draft candidates."
-        : "No facts yet. An author needs to propose them first."));
+        : "No facts yet. Switch to Author to propose them."));
     }
-    const reviewer = can("medical_reviewer");
+    const reviewer = can("reviewer");
     const order = { candidate: 0, uncertain: 1, approved: 2, rejected: 3 };
     for (const f of [...t.facts].sort((a, b) => order[a.status] - order[b.status])) {
       const selectable = reviewer && (f.status === "candidate" || f.status === "approved");
@@ -539,15 +540,15 @@
       el("span", { class: `approval ${done.has(r) ? "done" : ""}`, text: `${ROLES[r] || r}${done.has(r) ? " approved" : ""}` }))));
 
     const terminal = rap.status === "approved" || rap.status === "rejected";
-    const reviewer = can("medical_reviewer") || can("educator");
+    const reviewer = can("reviewer");
     if (rap.status === "approved") {
-      box.append(el("p", { text: "Approved by both reviewers. It can be exported." }));
+      box.append(el("p", { text: "Approved. The lyrics can be downloaded." }));
       return;
     }
     if (rap.status === "rejected") { box.append(el("p", { class: "hint", text: "This rap was rejected." })); return; }
     if (!reviewer) {
       box.append(el("p", { class: "hint", text: rap.status === "pending_review"
-        ? "Switch to Medical reviewer or Educator (top right) to review."
+        ? "Switch to Reviewer (top right) to review."
         : "Reviewers can approve once the rap passes its checks and is waiting for review." }));
       return;
     }
@@ -573,7 +574,7 @@
         try {
           const r = await api("POST", `/api/raps/${rap.id}/review`, body);
           const status = r.rap.status;
-          toast(decision === "approve" ? (status === "approved" ? "Approved. Both reviews are in." : "Approval recorded. Waiting for the other reviewer.")
+          toast(decision === "approve" ? (status === "approved" ? "Approved. The lyrics are final." : "Approval recorded.")
             : decision === "request_revision" ? "Changes requested. The author can now fix the flagged lines."
             : decision === "reject" ? "Rap rejected." : "Comment added.");
           state.selected.clear();
@@ -642,8 +643,11 @@
 
   // ---------- wiring ----------
   async function init() {
+    try { const h = await (await fetch("/api/health")).json(); state.local = !!h.local_mode; } catch { /* server not reachable yet */ }
+    if (state.local) $("#keys-btn").classList.add("hidden");
     state.keys = load("medkids.keys", window.MEDKIDS_DEMO ? { ...window.MEDKIDS_DEMO.keys } : {});
     state.role = load("medkids.role", "author");
+    if (!ROLES[state.role]) state.role = "author";
     $("#role-select").value = state.role;
 
     $("#role-select").addEventListener("change", async (e) => {
@@ -679,7 +683,7 @@
     showStep(load("medkids.step", "topic"));
     await refreshMe();
     await loadTopics();
-    if (!Object.keys(state.keys).length && !window.MEDKIDS_DEMO) openKeys();
+    if (!state.local && !Object.keys(state.keys).length && !window.MEDKIDS_DEMO) openKeys();
   }
 
   document.addEventListener("DOMContentLoaded", init);

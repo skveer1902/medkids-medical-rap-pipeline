@@ -28,15 +28,17 @@ DEFAULT_SCORE_WEIGHTS: dict[str, float] = {
     "memorability": 0.10,
 }
 
-REVIEWER_ROLES = ("medical_reviewer", "educator")
-ALL_ROLES = ("author", "medical_reviewer", "educator", "admin")
+REVIEWER_ROLES = ("reviewer",)
+# Older configs used two reviewer roles; both now map to the single human reviewer.
+LEGACY_ROLE_ALIASES = {"medical_reviewer": "reviewer", "educator": "reviewer"}
+ALL_ROLES = ("author", "reviewer", "admin")
 
 
 class ApiKeyEntry(BaseModel):
     """One configured API key mapped to a named principal and role."""
 
     name: str
-    role: Literal["author", "medical_reviewer", "educator", "admin"]
+    role: Literal["author", "reviewer", "admin"]
     key: SecretStr
 
 
@@ -96,6 +98,7 @@ class Settings(BaseModel):
     @field_validator("required_approval_roles")
     @classmethod
     def _check_roles(cls, v: list[str]) -> list[str]:
+        v = list(dict.fromkeys(LEGACY_ROLE_ALIASES.get(r, r) for r in v))
         if not v:
             raise ValueError("at least one human approval role is required")
         bad = [r for r in v if r not in REVIEWER_ROLES]
@@ -146,6 +149,7 @@ def _parse_api_keys(raw: str | None) -> list[ApiKeyEntry]:
         if len(parts) != 3 or not all(p.strip() for p in parts):
             raise ValueError("API_KEYS entries must look like name:role:key")
         name, role, key = (p.strip() for p in parts)
+        role = LEGACY_ROLE_ALIASES.get(role, role)
         if len(key) < 16:
             raise ValueError(f"API key for '{name}' must be at least 16 characters")
         entries.append(ApiKeyEntry(name=name, role=role, key=SecretStr(key)))  # type: ignore[arg-type]

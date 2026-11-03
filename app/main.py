@@ -57,7 +57,7 @@ def create_app(
         log_event(logger, "startup", app_env=settings.app_env, provider=settings.llm_provider,
                   auth_mode=settings.auth_mode)
         if settings.auth_mode == "dev":
-            log_event(logger, "WARNING: development reviewer auth is enabled (never use in production)")
+            log_event(logger, "local mode: no API keys required (AUTH_MODE=dev); for this computer only")
         yield
         app.state.engine.dispose()
 
@@ -128,7 +128,8 @@ def create_app(
         except Exception:
             db_status = "error"
         return HealthResponse(status="ok", app_env=settings.app_env, llm_provider=settings.llm_provider,
-                              database=db_status, version=__version__)  # type: ignore[arg-type]
+                              database=db_status, version=__version__,
+                              local_mode=settings.auth_mode == "dev" and settings.dev_auth_enabled)  # type: ignore[arg-type]
 
     for module in (routes_session, routes_topics, routes_generation, routes_evaluation, routes_review):
         app.include_router(module.router)

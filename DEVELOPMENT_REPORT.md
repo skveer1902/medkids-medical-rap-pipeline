@@ -17,7 +17,7 @@ Date: 25 Oct 2026 · Reference: *MEDKids Medical Rap Pipeline Research* (RET, 18
 | Data | `data/sample_topics/heart.json`, `brain.json` (demo data), `data/outputs/` |
 | Scripts | `scripts/init_db.py`, `seed_topics.py`, `run_demo.py` |
 | Tests | `tests/conftest.py`, `test_inputs_and_config.py`, `test_fact_extraction.py`, `test_prompts_and_age.py`, `test_rap_generation.py`, `test_llm_providers.py`, `test_medical_validation.py`, `test_safety_validation.py`, `test_pipeline.py`, `test_api.py`, `test_demo_and_logging.py` |
-| Ops / docs | `requirements.txt`, `pyproject.toml`, `.env.example`, `.gitignore`, `.dockerignore`, `Dockerfile`, `README.md`, `ARCHITECTURE.md`, this report |
+| Ops / docs | `requirements.txt`, `pyproject.toml`, `.env.example`, `.gitignore`, `run.bat` (local launcher), `README.md`, `ARCHITECTURE.md`, this report |
 
 About 6,900 lines of Python.
 
@@ -43,8 +43,8 @@ About 6,900 lines of Python.
 - **Targeted revision**: only failing or flagged lines can change (enforced in code), with a configurable cap
   of at most 3 and escalation (`needs_human_intervention`). Every version is immutable and stores provenance.
 - **Human review**: an explicit state machine (`draft`, `validation_failed`, `pending_review`,
-  `revision_requested`, `approved`, `rejected`). Approval requires a medical reviewer **and** an educator,
-  from distinct people, on the current version, with no unresolved failures. A revision invalidates earlier
+  `revision_requested`, `approved`, `rejected`). Approval requires one human reviewer on the current version,
+  with no unresolved failures (updated: originally two approvers). A revision invalidates earlier
   approvals.
 - **Storage**: SQLite/SQLAlchemy holds topics, sources, objectives, facts, versions, model and prompt
   versions, validations, evaluations, reviews, the workflow audit trail and per-call token, cost and latency.
@@ -124,7 +124,7 @@ PDF/OCR ingestion and file uploads; a reviewer UI; SSO; PostgreSQL; and async wo
 - The categories are Human Anatomy, Body Parts, Body Systems, Organ Functions, Medical Professions and Health
   Education.
 - A topic spanning both bands defaults to the younger (4–6) band unless the request names one.
-- Required approvers are `medical_reviewer` and `educator` (configurable). The research proposal's
+- One required approver, the `reviewer` (updated from the original medical reviewer + educator; configurable). The research proposal's
   content-owner sign-off for rights and branding is left to the existing RET process.
 - The retry cap defaults to 3 per the build brief (the research doc suggests 2; it is configurable).
 - Soft-score weights follow the build brief (30/25/20/15/10), and accuracy and safety are additionally hard

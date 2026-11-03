@@ -85,9 +85,13 @@ def test_score_weights_must_sum_to_one_and_threshold_configurable():
 
 
 def test_api_key_parsing():
-    keys = _parse_api_keys("alice:medical_reviewer:abcdefghijklmnop, bob:educator:qrstuvwxyz123456")
-    assert [(k.name, k.role) for k in keys] == [("alice", "medical_reviewer"), ("bob", "educator")]
+    keys = _parse_api_keys("alice:reviewer:abcdefghijklmnop, bob:author:qrstuvwxyz123456")
+    assert [(k.name, k.role) for k in keys] == [("alice", "reviewer"), ("bob", "author")]
+    # older two-reviewer configs still load, mapped to the single reviewer role
+    legacy = _parse_api_keys("mo:medical_reviewer:abcdefghijklmnop,ed:educator:qrstuvwxyz123456")
+    assert {k.role for k in legacy} == {"reviewer"}
+    assert Settings(required_approval_roles=["medical_reviewer", "educator"]).required_approval_roles == ["reviewer"]
     with pytest.raises(ValueError):
-        _parse_api_keys("alice:medical_reviewer:short")
+        _parse_api_keys("alice:reviewer:short")
     with pytest.raises(ValueError):
         _parse_api_keys("malformed-entry")

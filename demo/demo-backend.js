@@ -13,16 +13,15 @@
   // ------------------------------------------------------------------ principals
   const PRINCIPALS = {
     "demo-author": { name: "Ana (author)", role: "author" },
-    "demo-medical": { name: "Dr. Mo (medical reviewer)", role: "medical_reviewer" },
-    "demo-educator": { name: "Ed (educator)", role: "educator" },
+    "demo-reviewer": { name: "Rita (reviewer)", role: "reviewer" },
   };
   const PERMISSIONS = {
-    read: ["author", "medical_reviewer", "educator", "admin"],
+    read: ["author", "reviewer", "admin"],
     author: ["author", "admin"],
-    approve_facts: ["medical_reviewer"],
-    review: ["medical_reviewer", "educator"],
+    approve_facts: ["reviewer"],
+    review: ["reviewer"],
   };
-  const REQUIRED_APPROVERS = ["medical_reviewer", "educator"];
+  const REQUIRED_APPROVERS = ["reviewer"];
   const MAX_REVISIONS = 3;
   const THRESHOLD = 80;
   const WEIGHTS = { medical_accuracy: 0.30, educational_coverage: 0.25, age_appropriateness: 0.20, rhyme_rhythm: 0.15, memorability: 0.10 };
@@ -221,7 +220,7 @@
   }
 
   function reviewFacts(t, body, who) {
-    if (who.role !== "medical_reviewer") throw forbidden("only a medical reviewer can approve or reject medical facts");
+    if (who.role !== "reviewer") throw forbidden("only a reviewer can approve or reject medical facts");
     const approve = body.approve_fact_ids || [], reject = body.reject_fact_ids || [];
     if (!approve.length && !reject.length) throw rejected("provide at least one fact to approve or reject");
     const byKey = Object.fromEntries(t.facts.map((f) => [f.fact_key, f]));
@@ -527,7 +526,7 @@
     return b;
   }
   function review(rap, body, who) {
-    if (!PERMISSIONS.review.includes(who.role)) throw forbidden("only medical reviewers and educators can review raps");
+    if (!PERMISSIONS.review.includes(who.role)) throw forbidden("only a reviewer can review raps");
     const d = body.decision;
     if (!["approve", "reject", "request_revision", "comment"].includes(d)) throw rejected("unknown decision");
     if (d !== "approve" && !(body.feedback || (body.issues && body.issues.length))) throw rejected(`'${d}' requires feedback or issues`);
@@ -585,7 +584,7 @@
       required_vocabulary: ["muscle", "oxygen", "nutrients", "blood vessels", "heartbeat"] },
   ];
   (function seed() {
-    const author = PRINCIPALS["demo-author"], med = PRINCIPALS["demo-medical"];
+    const author = PRINCIPALS["demo-author"], med = PRINCIPALS["demo-reviewer"];
     const heart = createTopic(SAMPLES[1], author);
     extractFacts(heart);
     reviewFacts(heart, { approve_fact_ids: heart.facts.map((f) => f.fact_key) }, med);
@@ -662,7 +661,7 @@
   };
 
   window.MEDKIDS_DEMO = {
-    keys: { author: "demo-author", medical_reviewer: "demo-medical", educator: "demo-educator" },
+    keys: { author: "demo-author", reviewer: "demo-reviewer" },
     showExport(data) {
       const dlg = document.getElementById("export-dialog");
       document.getElementById("export-json").textContent = JSON.stringify(data, null, 2);

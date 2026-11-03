@@ -63,7 +63,7 @@ def approval_blockers(rap: Rap, settings: Settings) -> list[str]:
 
 def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Principal, settings: Settings) -> ReviewDecision:
     if principal.role not in PERMISSIONS["review"]:
-        raise PermissionDeniedError("only medical reviewers and educators can review raps")
+        raise PermissionDeniedError("only a reviewer can review raps")
     if rap.status in {"approved", "rejected"} and req.decision != "comment":
         raise WorkflowError(f"rap is already '{rap.status}'")
 

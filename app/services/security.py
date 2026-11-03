@@ -23,10 +23,10 @@ from app.core.config import ALL_ROLES, Settings
 from app.core.exceptions import AuthenticationError, PermissionDeniedError
 
 PERMISSIONS: dict[str, set[str]] = {
-    "read": {"author", "medical_reviewer", "educator", "admin"},
+    "read": {"author", "reviewer", "admin"},
     "author": {"author", "admin"},
-    "approve_facts": {"medical_reviewer"},
-    "review": {"medical_reviewer", "educator"},
+    "approve_facts": {"reviewer"},
+    "review": {"reviewer"},
 }
 
 
@@ -50,7 +50,7 @@ def authenticate(settings: Settings, api_key: str | None, dev_user: str | None) 
         name, role = name.strip(), role.strip()
         if not name or role not in ALL_ROLES:
             raise AuthenticationError(f"X-Dev-User must be 'name:role' with role in {ALL_ROLES}")
-        return Principal(name=f"dev:{name}", role=role, auth_method="dev")
+        return Principal(name=name, role=role, auth_method="local")
     raise AuthenticationError("missing credentials: send an X-API-Key header")
 
 

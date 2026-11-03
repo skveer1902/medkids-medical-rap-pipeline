@@ -24,7 +24,7 @@ def ready_topic(client) -> int:
     ex = client.post(f"/api/topics/{tid}/facts/extract", headers=h("author"))
     assert ex.status_code == 200
     ids = [f["fact_key"] for f in ex.json()["candidates"]]
-    ap = client.post(f"/api/topics/{tid}/facts/approve", json={"approve_fact_ids": ids}, headers=h("medical"))
+    ap = client.post(f"/api/topics/{tid}/facts/approve", json={"approve_fact_ids": ids}, headers=h("reviewer"))
     assert ap.status_code == 200 and ap.json()["approved_fact_count"] == len(ids)
     return tid
 
@@ -65,13 +65,13 @@ def test_unpublished_content_requires_authentication(client, method, path):
 
 
 def test_dev_header_rejected_unless_dev_mode(client):
-    assert client.get("/api/topics", headers={"X-Dev-User": "eve:medical_reviewer"}).status_code == 401
+    assert client.get("/api/topics", headers={"X-Dev-User": "eve:reviewer"}).status_code == 401
 
 
 def test_dev_mode_works_only_when_explicitly_enabled(tmp_path, mock):
     app = create_app(make_settings(tmp_path, auth_mode="dev", dev_auth_enabled=True), provider_factory=lambda: mock)
     with TestClient(app) as c:
-        assert c.get("/api/topics", headers={"X-Dev-User": "eve:educator"}).status_code == 200
+        assert c.get("/api/topics", headers={"X-Dev-User": "eve:reviewer"}).status_code == 200
         assert c.get("/api/topics", headers={"X-Dev-User": "eve:superuser"}).status_code == 401
 
 
@@ -97,15 +97,15 @@ def test_source_over_configured_limit_rejected(tmp_path, mock):
 
 def test_role_authorization(client):
     tid = create_topic(client)
-    for who in ("medical", "educator"):  # reviewers cannot author content
+    for who in ("reviewer",):  # reviewers cannot author content
         assert client.post("/api/topics", json=load_sample("brain"), headers=h(who)).status_code == 403
     ex = client.post(f"/api/topics/{tid}/facts/extract", headers=h("author")).json()
     ids = [f["fact_key"] for f in ex["candidates"]]
-    for who in ("author", "educator", "admin"):  # only medical reviewers approve facts
+    for who in ("author", "admin"):  # only reviewers approve facts
         r = client.post(f"/api/topics/{tid}/facts/approve", json={"approve_fact_ids": ids}, headers=h(who))
         assert r.status_code == 403
     assert client.post(f"/api/topics/{tid}/facts/approve", json={"approve_fact_ids": ids},
-                       headers=h("medical")).status_code == 200
+                       headers=h("reviewer")).status_code == 200
 
 
 def test_not_found(client):
@@ -115,35 +115,30 @@ def test_not_found(client):
 
 # --- full workflow ------------------------------------------------------------------------------
 
-def test_full_review_workflow_requires_both_human_approvals(client, tmp_path):
+def test_full_review_workflow_single_reviewer_approval(client, tmp_path):
     tid = ready_topic(client)
     rap = generate(client, tid)
     rid = rap["id"]
-    assert rap["status"] == "pending_review"
+    assert rap["status"] == "pending_review" and rap["approvals_required"] == ["reviewer"]
     assert rap["medical_validation"]["status"] in {"passed", "requires_review"}
     assert rap["evaluation"]["total_score"] > 0 and rap["is_demo_data"] is True
 
     assert review(client, rid, "author", "approve").status_code == 403  # authors are not reviewers
     assert client.get(f"/api/raps/{rid}/export", headers=h("author")).status_code == 409
 
-    r = review(client, rid, "medical", "approve", feedback="Facts match the approved card.")
-    assert r.status_code == 200 and r.json()["rap"]["status"] == "pending_review"
-    assert r.json()["rap"]["approvals_for_current_version"] == ["medical_reviewer"]
-    assert review(client, rid, "medical2", "approve").status_code == 409  # same role twice
-
-    r = review(client, rid, "educator", "approve", feedback="Age-appropriate.")
-    assert r.status_code == 200 and r.json()["rap"]["status"] == "approved"
+    r = review(client, rid, "reviewer", "approve", feedback="Facts match the approved card.")
+    assert r.status_code == 200 and r.json()["rap"]["status"] == "approved"  # one human approval is enough
+    assert review(client, rid, "reviewer2", "approve").status_code == 409  # already final
 
     export = client.get(f"/api/raps/{rid}/export", headers=h("author"))
-    assert export.status_code == 200 and export.json()["approvals"] == {
-        "medical_reviewer": "dr-mo", "educator": "ed-teacher"}
+    assert export.status_code == 200 and export.json()["approvals"] == {"reviewer": "rita-reviewer"}
     files = list((tmp_path / "outputs" / "approved").glob("*.json"))
     assert len(files) == 1 and json.loads(files[0].read_text())["rap_id"] == rid
 
-    assert review(client, rid, "medical", "reject", feedback="changed my mind").status_code == 409  # terminal
-    hist = client.get(f"/api/raps/{rid}/history", headers=h("educator")).json()
+    assert review(client, rid, "reviewer", "reject", feedback="changed my mind").status_code == 409  # terminal
+    hist = client.get(f"/api/raps/{rid}/history", headers=h("reviewer")).json()
     assert [e["to_status"] for e in hist["events"]][-1] == "approved"
-    assert len(hist["reviews"]) == 2 and hist["versions"][0]["prompt_sha256"]
+    assert len(hist["reviews"]) == 1 and hist["versions"][0]["prompt_sha256"]
 
 
 def test_cannot_approve_rap_with_failing_validation(client, mock):
@@ -151,7 +146,7 @@ def test_cannot_approve_rap_with_failing_validation(client, mock):
     mock.queue("rap_generation", rap_json())
     rap = generate(client, tid, auto_revise=False)
     assert rap["status"] == "validation_failed"
-    r = review(client, rap["id"], "medical", "approve")
+    r = review(client, rap["id"], "reviewer", "approve")
     assert r.status_code == 409 and "approval blocked" in r.json()["error"]["message"]
     assert "unresolved critical/major medical accuracy errors" in r.json()["error"]["details"]["blockers"][0] \
         or "pending_review" in r.json()["error"]["details"]["blockers"][0]
@@ -174,25 +169,24 @@ def test_validate_evaluate_revise_endpoints(client, mock):
     assert rv.json()["rap"]["status"] == "pending_review" and rv.json()["rap"]["current_version"] == 2
 
 
-def test_reviewer_revision_invalidates_earlier_approval(client):
+def test_reviewer_revision_creates_new_version_needing_approval(client):
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
-    assert review(client, rid, "medical", "approve").status_code == 200
-    r = review(client, rid, "educator", "request_revision", feedback="Line too long for 4-year-olds",
+    r = review(client, rid, "reviewer", "request_revision", feedback="Line too long for 4-year-olds",
                issues=[{"line_id": "v1_l03", "severity": "major", "reason": "too long"}])
     assert r.status_code == 200 and r.json()["rap"]["status"] == "revision_requested"
-    assert review(client, rid, "educator", "approve").status_code == 409  # not pending_review
+    assert review(client, rid, "reviewer", "approve").status_code == 409  # not pending_review
     rv = client.post(f"/api/raps/{rid}/revise", headers=h("author"))
     assert rv.status_code == 200
     detail = rv.json()["rap"]
     assert detail["current_version"] == 2 and detail["status"] == "pending_review"
-    assert detail["approvals_for_current_version"] == []  # medical approval of v1 no longer counts
+    assert detail["approvals_for_current_version"] == []  # new version needs a fresh approval
 
 
 def test_revision_request_without_line_issues_cannot_auto_revise(client):
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
-    review(client, rid, "educator", "request_revision", feedback="Make it funnier overall")
+    review(client, rid, "reviewer", "request_revision", feedback="Make it funnier overall")
     r = client.post(f"/api/raps/{rid}/revise", headers=h("author"))
     assert r.status_code == 422 and "line-level" in r.json()["error"]["message"]
 
@@ -200,17 +194,17 @@ def test_revision_request_without_line_issues_cannot_auto_revise(client):
 def test_critical_reviewer_comment_blocks_approval(client):
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
-    c = review(client, rid, "medical", "comment", issues=[{"line_id": "v1_l01", "severity": "critical",
+    c = review(client, rid, "reviewer", "comment", issues=[{"line_id": "v1_l01", "severity": "critical",
                                                           "reason": "misleading for this age"}])
     assert c.status_code == 200
-    r = review(client, rid, "educator", "approve")
+    r = review(client, rid, "reviewer", "approve")
     assert r.status_code == 409 and "critical issues" in r.json()["error"]["message"]
 
 
 def test_reject_is_terminal(client):
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
-    assert review(client, rid, "educator", "reject", feedback="Off-topic").json()["rap"]["status"] == "rejected"
+    assert review(client, rid, "reviewer", "reject", feedback="Off-topic").json()["rap"]["status"] == "rejected"
     assert client.post(f"/api/raps/{rid}/validate", headers=h("author")).status_code == 409
     assert client.post(f"/api/raps/{rid}/revise", headers=h("author")).status_code == 409
 
@@ -227,7 +221,7 @@ def test_list_filters(client):
     assert len(client.get("/api/raps", params={"status": "pending_review"}, headers=h("author")).json()) == 1
     assert client.get("/api/raps", params={"status": "approved"}, headers=h("author")).json() == []
     assert client.get("/api/raps", params={"status": "bogus"}, headers=h("author")).status_code == 422
-    assert [t["slug"] for t in client.get("/api/topics", headers=h("educator")).json()] == ["heart"]
+    assert [t["slug"] for t in client.get("/api/topics", headers=h("reviewer")).json()] == ["heart"]
 
 
 def test_llm_failures_return_safe_errors(client, mock):

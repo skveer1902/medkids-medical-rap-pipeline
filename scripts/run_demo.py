@@ -42,7 +42,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # It is not a person and its approvals are recorded under this explicit name.
 DEV_FIXTURE_REVIEWER = Principal(
     name="DEV-FIXTURE (demo only - not a human medical review)",
-    role="medical_reviewer",
+    role="reviewer",
     auth_method="dev_fixture",
 )
 
@@ -126,7 +126,7 @@ def run(db_path: Path, out_dir: Path) -> list[dict]:
         print(f"7.   Saved {out_file.relative_to(ROOT) if out_file.is_relative_to(ROOT) else out_file}")
         print(f"8.   REVIEW STATUS: {rap.status}"
               + ("  (needs human intervention)" if rap.needs_human_intervention else "")
-              + "  -> awaiting human medical reviewer + educator approval")
+              + "  -> awaiting the reviewer's approval")
         results.append(payload)
     session.close()
     engine.dispose()

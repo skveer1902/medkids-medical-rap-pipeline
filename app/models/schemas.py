@@ -598,3 +598,4 @@ class HealthResponse(BaseModel):
     llm_provider: str
     database: Literal["ok", "error"]
     version: str
+    local_mode: bool = False  # True when the no-keys local login (AUTH_MODE=dev) is on

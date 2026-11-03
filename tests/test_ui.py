@@ -23,10 +23,10 @@ def test_ui_does_not_use_innerhtml_for_server_data(client):
 
 def test_me_reports_role_and_permissions(client):
     assert client.get("/api/me").status_code == 401
-    me = client.get("/api/me", headers=h("medical")).json()
-    assert me["name"] == "dr-mo" and me["role"] == "medical_reviewer"
+    me = client.get("/api/me", headers=h("reviewer")).json()
+    assert me["name"] == "rita-reviewer" and me["role"] == "reviewer"
     assert set(me["permissions"]) == {"read", "approve_facts", "review"}
-    assert me["required_approval_roles"] == ["medical_reviewer", "educator"]
+    assert me["required_approval_roles"] == ["reviewer"]
     assert "author" in client.get("/api/me", headers=h("author")).json()["permissions"]
 
 
@@ -37,3 +37,22 @@ def test_samples_require_auth_and_match_topic_schema(client):
     assert all("_comment" not in s for s in samples)
     created = client.post("/api/topics", json=samples[0], headers=h("author"))
     assert created.status_code == 201
+
+
+def test_health_reports_local_mode(tmp_path, mock):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from tests.conftest import make_settings
+
+    app = create_app(make_settings(tmp_path, auth_mode="dev", dev_auth_enabled=True), provider_factory=lambda: mock)
+    with TestClient(app) as c:
+        assert c.get("/api/health").json()["local_mode"] is True
+        me = c.get("/api/me", headers={"X-Dev-User": "Reviewer:reviewer"}).json()
+        assert me["name"] == "Reviewer" and me["role"] == "reviewer"
+
+
+def test_ui_has_no_logo_or_tagline(client):
+    page = client.get("/ui/").text
+    assert "brand-mark" not in page and "Approved facts in" not in page
+    assert 'value="reviewer"' in page and "medical_reviewer" not in page and "educator" not in page
