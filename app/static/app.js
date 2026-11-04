@@ -74,7 +74,12 @@
   async function api(method, path, body) {
     const key = state.keys[state.role];
     const headers = { Accept: "application/json" };
-    if (state.local) headers["X-Dev-User"] = `${ROLES[state.role]}:${state.role}`;
+    if (state.local) {
+      // Local mode: no passwords. A display name per role can be set (stored only in this browser).
+      const names = load("medkids.names", {});
+      const name = String(names[state.role] || ROLES[state.role]).replace(/[^A-Za-z0-9 ._-]/g, "").slice(0, 40) || ROLES[state.role];
+      headers["X-Dev-User"] = `${name}:${state.role}`;
+    }
     else if (key) headers["X-API-Key"] = key;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -103,7 +108,7 @@
     }
     try {
       state.me = await api("GET", "/api/me");
-      who.textContent = state.local ? "Local mode" : `Signed in as ${state.me.name}`;
+      who.textContent = state.local ? `Local mode: ${state.me.name}` : `Signed in as ${state.me.name}`;
       who.className = "whoami ok";
     } catch (err) {
       state.me = null;
