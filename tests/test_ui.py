@@ -33,7 +33,7 @@ def test_me_reports_role_and_permissions(client):
 def test_samples_require_auth_and_match_topic_schema(client):
     assert client.get("/api/samples").status_code == 401
     samples = client.get("/api/samples", headers=h("author")).json()
-    assert {s["topic"] for s in samples} == {"Heart", "Brain"}
+    assert {"Heart", "Brain", "Lungs", "Bones", "Stomach", "Eyes", "Teeth", "Skin", "Muscles", "Kidneys"} == {s["topic"] for s in samples}
     assert all("_comment" not in s for s in samples)
     created = client.post("/api/topics", json=samples[0], headers=h("author"))
     assert created.status_code == 201

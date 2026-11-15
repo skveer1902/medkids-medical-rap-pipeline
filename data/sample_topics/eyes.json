@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Eyes",
+  "category": "Body Parts",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Eyes starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand how our eyes help us see",
+  "educational_content": "The eyes help us see. Light goes into the eye through the pupil. The eye sends messages to the brain. The brain turns the messages into pictures. Eyelids and eyelashes help protect the eyes.",
+  "learning_objectives": [
+    "The eyes help us see.",
+    "Light goes into the eye through the pupil.",
+    "The eyes send messages to the brain.",
+    "Eyelids and eyelashes protect the eyes."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Eating carrots gives you super vision",
+      "pattern": "\\bcarrots?\\b.{0,30}\\b(super|night)\\s+vision\\b"
+    },
+    {
+      "claim": "Eyes see without the brain",
+      "pattern": "\\beyes?\\b.{0,20}\\bwithout\\b.{0,10}\\bbrain\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "eyes",
+    "pupil",
+    "eyelids",
+    "eyelashes"
+  ]
+}

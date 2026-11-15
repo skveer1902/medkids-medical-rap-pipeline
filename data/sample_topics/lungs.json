@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Lungs",
+  "category": "Organ Functions",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Lungs starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand that the lungs help us breathe",
+  "educational_content": "The lungs are two organs in the chest. We breathe air into our lungs. The lungs take oxygen from the air. The lungs breathe out carbon dioxide. We breathe all day and all night, even when we sleep. Running and playing make us breathe faster.",
+  "learning_objectives": [
+    "The lungs help us breathe.",
+    "The lungs take oxygen from the air.",
+    "We breathe out carbon dioxide.",
+    "Exercise makes us breathe faster."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The lungs pump blood",
+      "pattern": "\\blungs?\\b.{0,20}\\b(pumps?|pumping)\\b.{0,10}\\bblood\\b"
+    },
+    {
+      "claim": "We stop breathing when we sleep",
+      "pattern": "\\b(stop|stops)\\b.{0,10}\\bbreath\\w*\\b.{0,20}\\bsleep"
+    }
+  ],
+  "required_vocabulary": [
+    "lungs",
+    "oxygen",
+    "breathe",
+    "chest"
+  ]
+}

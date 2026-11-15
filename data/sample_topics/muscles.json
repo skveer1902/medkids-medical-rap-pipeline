@@ -1,0 +1,32 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Muscles",
+  "category": "Body Systems",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Muscles starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand that muscles help the body move",
+  "educational_content": "Muscles help the body move. Muscles pull on bones to move them. The heart is a muscle that pumps blood. We choose to move some muscles, like the muscles in our arms and legs. Exercise helps make muscles stronger.",
+  "learning_objectives": [
+    "Muscles help the body move.",
+    "Muscles pull on bones.",
+    "The heart is a muscle.",
+    "Exercise makes muscles stronger."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Muscles push bones",
+      "pattern": "\\bmuscles?\\b.{0,10}\\bpush(es)?\\b.{0,10}\\bbones?\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "muscles",
+    "bones",
+    "exercise",
+    "heart"
+  ]
+}

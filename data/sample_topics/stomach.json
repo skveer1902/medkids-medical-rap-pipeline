@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Stomach",
+  "category": "Body Systems",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Stomach starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand how the stomach helps digest food",
+  "educational_content": "The stomach is part of the digestive system. Food goes down a tube called the esophagus to the stomach. The stomach mixes food with digestive juices. Food then moves into the small intestine. The small intestine takes nutrients from food into the blood.",
+  "learning_objectives": [
+    "The stomach is part of the digestive system.",
+    "The stomach mixes food with digestive juices.",
+    "Food moves from the stomach to the small intestine.",
+    "Nutrients from food go into the blood."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Food is digested only in the stomach",
+      "pattern": "\\bonly\\b.{0,20}\\bstomach\\b.{0,20}\\bdigest"
+    },
+    {
+      "claim": "Swallowed gum stays in the stomach for years",
+      "pattern": "\\bgum\\b.{0,30}\\b(years|forever)\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "digestive system",
+    "esophagus",
+    "intestine",
+    "nutrients",
+    "stomach"
+  ]
+}

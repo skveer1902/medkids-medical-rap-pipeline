@@ -1,0 +1,32 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Skin",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Skin starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand how skin protects the body",
+  "educational_content": "The skin is the body's largest organ. The skin covers and protects the body. The skin helps keep germs out of the body. Sweat helps cool the body down. The skin lets us feel touch, heat and cold.",
+  "learning_objectives": [
+    "The skin is the body's largest organ.",
+    "The skin protects the body and helps keep germs out.",
+    "Sweat helps cool the body.",
+    "The skin lets us feel touch, heat and cold."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Sweat is dirty and bad",
+      "pattern": "\\bsweat\\b.{0,15}\\b(is|means)\\b.{0,10}\\b(dirty|bad|gross)\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "skin",
+    "organ",
+    "germs",
+    "sweat"
+  ]
+}

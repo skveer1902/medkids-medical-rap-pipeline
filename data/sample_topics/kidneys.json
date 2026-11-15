@@ -1,0 +1,33 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Kidneys",
+  "category": "Organ Functions",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Kidneys starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand how the kidneys clean the blood",
+  "educational_content": "The kidneys are two bean-shaped organs. The kidneys clean the blood. The kidneys take waste out of the blood. The kidneys make urine. Drinking water helps the kidneys do their job.",
+  "learning_objectives": [
+    "The kidneys are two bean-shaped organs.",
+    "The kidneys clean the blood.",
+    "The kidneys take waste out of the blood.",
+    "Drinking water helps the kidneys work."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The kidneys pump blood",
+      "pattern": "\\bkidneys?\\b.{0,20}\\b(pumps?|pumping)\\b.{0,10}\\bblood\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "kidneys",
+    "organs",
+    "waste",
+    "urine",
+    "blood"
+  ]
+}

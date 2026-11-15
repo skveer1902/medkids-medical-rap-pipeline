@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Bones",
+  "category": "Body Parts",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Bones starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand what bones and the skeleton do",
+  "educational_content": "Bones make up the skeleton. The skeleton holds the body up and gives it shape. Bones protect organs, like the skull protects the brain. Muscles pull on bones to help us move. Bones need calcium to grow strong. Adults have 206 bones.",
+  "learning_objectives": [
+    "The skeleton is made of bones.",
+    "Bones hold the body up and give it shape.",
+    "Bones protect organs.",
+    "Muscles and bones work together to move the body."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Bones are not alive",
+      "pattern": "\\bbones?\\b.{0,15}\\b(not|aren'?t|isn'?t)\\b.{0,10}\\b(alive|living)\\b"
+    },
+    {
+      "claim": "Babies have no bones",
+      "pattern": "\\bbab(y|ies)\\b.{0,15}\\b(no|without)\\b.{0,5}\\bbones\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "skeleton",
+    "skull",
+    "calcium",
+    "muscles"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Teeth",
+  "category": "Health Education",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Teeth starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "Understand what teeth do and how to keep them healthy",
+  "educational_content": "Teeth help us bite and chew food. Children have 20 baby teeth. Baby teeth fall out and grown-up teeth grow in. Brushing teeth twice a day helps keep them healthy. Too much sugar can cause holes in teeth called cavities.",
+  "learning_objectives": [
+    "Teeth help us bite and chew food.",
+    "Baby teeth fall out and grown-up teeth grow in.",
+    "Brushing twice a day keeps teeth healthy.",
+    "Too much sugar can cause cavities."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Baby teeth don't matter",
+      "pattern": "\\bbaby\\s+teeth\\b.{0,20}\\b(don'?t|do\\s+not)\\s+matter\\b"
+    },
+    {
+      "claim": "Grown-up teeth grow back if lost",
+      "pattern": "\\b(grown-?up|adult)\\s+teeth\\b.{0,30}\\bgrow\\s+back\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "teeth",
+    "chew",
+    "cavities",
+    "brushing"
+  ]
+}
