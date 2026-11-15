@@ -331,9 +331,10 @@
 
   // ---------- raps ----------
   async function loadRaps() {
-    if (!state.topic) { state.raps = []; renderRaps(); return; }
+    if (!state.me) { state.raps = []; renderRaps(); return; }
     try {
-      const summaries = await api("GET", `/api/raps?topic_id=${state.topic.id}&limit=20`);
+      // All songs from every topic, so nothing is hidden behind the topic picker.
+      const summaries = await api("GET", "/api/raps?limit=500");
       state.raps = await Promise.all(summaries.map((s) => api("GET", `/api/raps/${s.id}`)));
     } catch (err) { toast(err.message, true); state.raps = []; }
     renderRaps();
@@ -346,15 +347,19 @@
     list.replaceChildren();
     const approvedFacts = state.topic ? state.topic.facts.filter((f) => f.status === "approved").length : 0;
     if (!state.raps.length) {
-      list.append(el("div", { class: "empty", text: !state.topic ? "Choose a topic first."
-        : approvedFacts ? "No raps yet for this topic." : "Approve some facts in step 2 before writing a rap." }));
+      list.append(el("div", { class: "empty", text: !state.topic ? "No songs yet. Choose or create a topic first."
+        : approvedFacts ? "No songs yet. Write one above." : "Approve some facts in step 2 before writing a rap." }));
       return;
     }
+    const topicName = Object.fromEntries(state.topics.map((t) => [t.id, t.title]));
+    const here = state.raps.filter((r) => r.topic_id === state.topicId).length;
+    list.append(el("p", { class: "hint", text: `All ${state.raps.length} song${state.raps.length === 1 ? "" : "s"} from every topic, newest first`
+      + (state.topic ? ` (${here} for ${state.topic.title}).` : ".") + " Click a song to review it." }));
     for (const r of state.raps) {
       const score = r.evaluation ? Math.round(r.evaluation.total_score) : null;
-      list.append(el("button", { class: "rap-row", type: "button", onclick: () => openRap(r.id) },
+      list.append(el("button", { class: `rap-row${r.topic_id === state.topicId ? " current-topic" : ""}`, type: "button", onclick: () => openRap(r.id) },
         el("span", {}, el("strong", { text: r.title }),
-          el("span", { class: "sub", text: `Rap ${r.id}, version ${r.current_version}, ages ${r.age_band}, ${r.style.replaceAll("_", " ")}${r.needs_human_intervention ? ". Needs a person to fix" : ""}` })),
+          el("span", { class: "sub", text: `${topicName[r.topic_id] || "Topic " + r.topic_id}. Rap ${r.id}, version ${r.current_version}, ages ${r.age_band}, ${r.style.replaceAll("_", " ")}${r.needs_human_intervention ? ". Needs a person to fix" : ""}` })),
         el("span", { class: "score-pill", text: score === null ? "Not scored" : `${score}/100` }),
         badge(r.status, r.status === "approved" ? "approved-rap" : "")));
     }
@@ -388,6 +393,14 @@
   async function openRap(id, jump = true) {
     try {
       const [rap, history] = await Promise.all([api("GET", `/api/raps/${id}`), api("GET", `/api/raps/${id}/history`)]);
+      if (rap.topic_id !== state.topicId) {
+        // Switch to the song's topic so fact citations and the topic bar match the song.
+        state.topicId = rap.topic_id;
+        store("medkids.topic", state.topicId);
+        $("#topic-select").value = String(state.topicId);
+        state.topic = await api("GET", `/api/topics/${state.topicId}`);
+        renderTopic(); renderFacts(); renderRaps();
+      }
       state.rap = rap; state.history = history;
       if (state.rapId !== id) state.selected.clear();
       state.rapId = id;

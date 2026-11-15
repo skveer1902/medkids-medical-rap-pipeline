@@ -168,6 +168,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--pulse); outline:
   font: inherit; color: inherit; cursor: pointer; width: 100%;
 }
 .rap-row:hover { border-color: var(--pulse); }
+.rap-row.current-topic { border-left: 4px solid var(--pulse); }
 .rap-row strong { font-family: var(--font-display); font-size: 1.1rem; }
 .rap-row .sub { display: block; color: var(--ink-soft); font-size: .85rem; }
 .score-pill { font-weight: 700; font-variant-numeric: tabular-nums; }
