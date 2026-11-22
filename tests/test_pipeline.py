@@ -16,6 +16,7 @@ from tests.conftest import AUTHOR, REVIEWER, make_settings
 
 
 def rap_json(bad_line: str | None = "The heart makes blood!") -> str:
+    """Return scripted rap JSON, optionally with one inaccurate line."""
     v1 = [{"text": bad_line, "fact_ids": []}] if bad_line else []
     v1 += [{"text": "The heart is a muscle!", "fact_ids": ["heart_fact_001"]},
            {"text": "Clap your hands and stomp your feet!", "fact_ids": []}]
@@ -29,10 +30,12 @@ def rap_json(bad_line: str | None = "The heart makes blood!") -> str:
 
 
 def generate(pipeline, session, topic, **kw) -> Rap:
+    """Generate one rap for a topic through the pipeline."""
     return pipeline.generate(session, RapGenerateRequest(topic_id=topic.id, **kw), AUTHOR)[0]
 
 
 def test_full_pipeline_reaches_pending_review_and_persists_everything(pipeline, session, approved_heart):
+    """Check that full pipeline reaches pending review and persists everything."""
     rap = generate(pipeline, session, approved_heart)
     assert rap.status == "pending_review" and rap.needs_human_intervention is False
     v = current_version(rap)
@@ -47,6 +50,7 @@ def test_full_pipeline_reaches_pending_review_and_persists_everything(pipeline, 
 
 
 def test_targeted_revision_fixes_only_failing_line(pipeline, session, approved_heart, mock):
+    """Check that targeted revision fixes only failing line."""
     mock.queue("rap_generation", rap_json())
     rap = generate(pipeline, session, approved_heart)
     assert rap.current_version == 2 and rap.auto_revision_attempts == 1
@@ -60,6 +64,7 @@ def test_targeted_revision_fixes_only_failing_line(pipeline, session, approved_h
 
 
 def test_revision_cannot_touch_untargeted_lines(pipeline, session, approved_heart, mock):
+    """Check that revision cannot touch untargeted lines."""
     mock.queue("rap_generation", rap_json())
     mock.queue("lyric_revision", json.dumps({"revised_lines": [
         {"line_id": "v1_l01", "text": "The heart pumps blood through the body!", "fact_ids": ["heart_fact_002"]},
@@ -72,6 +77,7 @@ def test_revision_cannot_touch_untargeted_lines(pipeline, session, approved_hear
 
 
 def test_revision_loop_is_capped_and_escalates(pipeline, session, approved_heart, mock):
+    """Check that revision loop is capped and escalates."""
     mock.queue("rap_generation", rap_json())
     bad = [json.dumps({"revised_lines": [{"line_id": "v1_l01", "text": f"The heart makes blood {i}!", "fact_ids": []}]})
            for i in range(10)]
@@ -86,6 +92,7 @@ def test_revision_loop_is_capped_and_escalates(pipeline, session, approved_heart
 
 
 def test_no_change_revisions_still_count_towards_cap(pipeline, session, approved_heart, mock):
+    """Check that no change revisions still count towards cap."""
     mock.queue("rap_generation", rap_json())
     same = json.dumps({"revised_lines": [{"line_id": "v1_l01", "text": "The heart makes blood!", "fact_ids": []}]})
     mock.queue("lyric_revision", *[same] * 10)
@@ -94,6 +101,7 @@ def test_no_change_revisions_still_count_towards_cap(pipeline, session, approved
 
 
 def test_zero_revision_attempts_escalates_immediately(session, approved_heart, mock, tmp_path):
+    """Check that zero revision attempts escalates immediately."""
     p = Pipeline(make_settings(tmp_path, max_revision_attempts=0), mock)
     mock.queue("rap_generation", rap_json())
     rap = generate(p, session, approved_heart)
@@ -102,6 +110,7 @@ def test_zero_revision_attempts_escalates_immediately(session, approved_heart, m
 
 
 def test_auto_revise_disabled_leaves_failure_for_author(pipeline, session, approved_heart, mock):
+    """Check that auto revise disabled leaves failure for author."""
     mock.queue("rap_generation", rap_json())
     rap = generate(pipeline, session, approved_heart, auto_revise=False)
     assert rap.status == "validation_failed" and rap.current_version == 1
@@ -110,11 +119,13 @@ def test_auto_revise_disabled_leaves_failure_for_author(pipeline, session, appro
 
 
 def test_generation_requires_approved_facts(pipeline, session, heart_topic):
+    """Check that generation requires approved facts."""
     with pytest.raises(WorkflowError, match="no approved facts"):
         pipeline.generate(session, RapGenerateRequest(topic_id=heart_topic.id), AUTHOR)
 
 
 def test_workflow_guards(pipeline, session, approved_heart):
+    """Check that workflow guards."""
     rap = generate(pipeline, session, approved_heart, run_pipeline=False)
     assert rap.status == "draft"
     with pytest.raises(WorkflowError, match="validate"):
@@ -134,6 +145,7 @@ def test_workflow_guards(pipeline, session, approved_heart):
 
 
 def test_multiple_candidates_capped(pipeline, session, approved_heart):
+    """Check that multiple candidates capped."""
     raps = pipeline.generate(session, RapGenerateRequest(topic_id=approved_heart.id, num_candidates=2,
                                                           run_pipeline=False), AUTHOR)
     assert len(raps) == 2 and raps[0].id != raps[1].id
@@ -141,6 +153,7 @@ def test_multiple_candidates_capped(pipeline, session, approved_heart):
 
 
 def test_schema_version_recorded_and_mismatch_detected(tmp_path):
+    """Check that schema version recorded and mismatch detected."""
     engine = make_engine(f"sqlite:///{tmp_path / 'x.db'}")
     init_db(engine)
     init_db(engine)  # idempotent

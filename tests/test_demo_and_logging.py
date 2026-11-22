@@ -8,6 +8,7 @@ from app.core.logging import RedactingFilter, redact
 
 
 def test_demo_runs_offline_and_never_approves(tmp_path, monkeypatch):
+    """Check that demo runs offline and never approves."""
     monkeypatch.setenv("LLM_PROVIDER", "mock")
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.delenv("AUTH_MODE", raising=False)
@@ -23,6 +24,7 @@ def test_demo_runs_offline_and_never_approves(tmp_path, monkeypatch):
 
 
 def test_secrets_are_redacted_from_logs():
+    """Check that secrets are redacted from logs."""
     assert "sk-ant-abcdef123456" not in redact("calling with sk-ant-abcdef123456")
     assert "supersecret" not in redact("X-API-Key: supersecret")
     record = logging.LogRecord("t", logging.INFO, __file__, 1, "token=%s", ("abc123",), None)

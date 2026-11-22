@@ -18,6 +18,7 @@ SAMPLE_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "sample_to
 
 @router.get("/me", summary="Who the current credentials belong to and what they may do")
 def me(request: Request, principal: Principal = Depends(get_principal)) -> dict[str, Any]:
+    """GET /api/me: say who the caller is, what they may do and whether local mode is on."""
     settings = request.app.state.settings
     return {
         "name": principal.name,
@@ -31,6 +32,7 @@ def me(request: Request, principal: Principal = Depends(get_principal)) -> dict[
 
 @router.get("/samples", summary="Demonstration topic payloads (Heart, Brain) for pre-filling the topic form")
 def samples(_: Principal = Depends(get_principal)) -> list[dict[str, Any]]:
+    """GET /api/samples: return the sample topics from data/sample_topics for the form."""
     out = []
     for path in sorted(SAMPLE_DIR.glob("*.json")):
         raw = json.loads(path.read_text(encoding="utf-8"))

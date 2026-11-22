@@ -8,6 +8,7 @@ class MedKidsError(Exception):
     code: str = "bad_request"
 
     def __init__(self, message: str, *, details: dict | None = None) -> None:
+        """Store the error message and optional extra details for the API response."""
         super().__init__(message)
         self.message = message
         self.details = details or {}

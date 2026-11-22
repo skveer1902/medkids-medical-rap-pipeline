@@ -75,6 +75,7 @@ class ForbiddenClaimIn(StrictModel):
     @field_validator("pattern")
     @classmethod
     def _valid_regex(cls, v: str | None) -> str | None:
+        """Check that a forbidden-claim pattern is a valid regex."""
         if v is None:
             return v
         try:
@@ -106,6 +107,7 @@ class TopicCreate(StrictModel):
     @field_validator("topic")
     @classmethod
     def _topic_name(cls, v: str) -> str:
+        """Check the topic name uses only letters, digits, spaces, ' or -."""
         if not _TOPIC_NAME_RE.match(v):
             raise ValueError("topic must start with a letter and contain only letters, digits, spaces, ' or -")
         return v
@@ -113,6 +115,7 @@ class TopicCreate(StrictModel):
     @field_validator("educational_content")
     @classmethod
     def _non_empty_content(cls, v: str) -> str:
+        """Reject empty source text."""
         if not v.strip():
             raise ValueError("educational_content must not be empty")
         return v
@@ -120,6 +123,7 @@ class TopicCreate(StrictModel):
     @field_validator("learning_objectives")
     @classmethod
     def _objectives(cls, v: list[str]) -> list[str]:
+        """Trim learning goals and reject ones that are too short, too long or repeated."""
         cleaned = [o.strip() for o in v]
         for o in cleaned:
             if len(o) < 3 or len(o) > 300:
@@ -131,6 +135,7 @@ class TopicCreate(StrictModel):
     @field_validator("required_vocabulary")
     @classmethod
     def _vocab(cls, v: list[str]) -> list[str]:
+        """Lower-case vocabulary words and limit their length."""
         out = [w.strip().lower() for w in v if w.strip()]
         for w in out:
             if len(w) > 40:
@@ -139,6 +144,7 @@ class TopicCreate(StrictModel):
 
     @model_validator(mode="after")
     def _age_range(self) -> TopicCreate:
+        """Check the minimum age is not above the maximum age."""
         if self.target_age_min > self.target_age_max:
             raise ValueError("target_age_min must be <= target_age_max")
         return self
@@ -222,7 +228,7 @@ class FactExtractionResponse(BaseModel):
     candidates: list[FactOut]
     uncertain: list[FactOut]
     note: str = (
-        "Candidate facts are NOT approved. A medical reviewer must approve them via "
+        "Candidate facts are NOT approved. The reviewer must approve them via "
         "POST /api/topics/{topic_id}/facts/approve before they can be used for generation."
     )
 
@@ -241,6 +247,7 @@ class FactApprovalRequest(StrictModel):
 
     @model_validator(mode="after")
     def _non_empty(self) -> FactApprovalRequest:
+        """Require at least one fact and forbid approving and rejecting the same one."""
         if not (self.approve_fact_ids or self.reject_fact_ids or self.manual_facts):
             raise ValueError("provide at least one fact to approve, reject or add")
         if set(self.approve_fact_ids) & set(self.reject_fact_ids):
@@ -278,18 +285,22 @@ class Lyrics(BaseModel):
     arrangement: list[str] = Field(default_factory=list, description="Performance order of sections.")
 
     def all_lines(self) -> list[LyricLine]:
+        """Return every lyric line in order."""
         return [line for s in self.sections for line in s.lines]
 
     def line_map(self) -> dict[str, LyricLine]:
+        """Return lines keyed by their line ID."""
         return {line.line_id: line for line in self.all_lines()}
 
     def section_of(self, line_id: str) -> str | None:
+        """Return the section name that contains a line."""
         for s in self.sections:
             if any(line.line_id == line_id for line in s.lines):
                 return s.section
         return None
 
     def text(self) -> str:
+        """Return the whole song as plain text, one line per row."""
         return "\n".join(line.text for line in self.all_lines())
 
 
@@ -359,7 +370,7 @@ class MedicalAccuracyReport(BaseModel):
     automated_triage_available: bool = True
     disclaimer: str = (
         "Automated claim checking is triage only. It is not an independent medical authority; "
-        "a human medical reviewer must sign off."
+        "the human reviewer must sign off."
     )
 
 
@@ -418,6 +429,7 @@ class ReviewRequest(StrictModel):
 
     @model_validator(mode="after")
     def _feedback_required(self) -> ReviewRequest:
+        """Require feedback when rejecting, requesting changes or commenting."""
         if self.decision in {"reject", "request_revision", "comment"} and not (
             self.feedback or self.issues
         ):

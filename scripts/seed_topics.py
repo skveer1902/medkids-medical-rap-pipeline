@@ -3,7 +3,7 @@
     python scripts/seed_topics.py
 
 Facts are NOT approved by this script. Approve them through the API as a
-medical reviewer, or run scripts/run_demo.py (which uses a labelled
+reviewer, or run scripts/run_demo.py (which uses a labelled
 development fixture).
 """
 
@@ -29,11 +29,13 @@ SEED_PRINCIPAL = Principal(name="seed-script", role="author", auth_method="scrip
 
 
 def load_sample(name: str) -> TopicCreate:
+    """Load a sample topic from data/sample_topics."""
     raw = json.loads((SAMPLE_DIR / f"{name}.json").read_text(encoding="utf-8"))
     return TopicCreate(**{k: v for k, v in raw.items() if not k.startswith("_")})
 
 
 def seed(session, settings: Settings, names: tuple[str, ...] = ("heart", "brain")) -> list[Topic]:  # type: ignore[no-untyped-def]
+    """Add the sample topics to the database if they are not there yet."""
     topics = []
     for name in names:
         data = load_sample(name)
@@ -47,6 +49,7 @@ def seed(session, settings: Settings, names: tuple[str, ...] = ("heart", "brain"
 
 
 def main() -> None:
+    """Create the tables and seed the sample topics."""
     settings = get_settings()
     engine = make_engine(settings.database_url)
     init_db(engine)

@@ -40,6 +40,7 @@ def _make_json_schema_strict(schema: dict[str, Any]) -> dict[str, Any]:
     Pydantic validation still enforces every constraint.)"""
 
     def walk(node: Any) -> Any:
+        """Recursively add additionalProperties=false to every object in the schema."""
         if isinstance(node, dict):
             out: dict[str, Any] = {}
             for k, v in node.items():
@@ -71,6 +72,7 @@ class ClaudeProvider(LLMProvider):
         client: Any | None = None,
         **kwargs: Any,
     ) -> None:
+        """Set up the Anthropic client for the chosen Claude model."""
         super().__init__(model, **kwargs)
         if not api_key and client is None:
             raise LLMConfigurationError("ANTHROPIC_API_KEY is not set.")
@@ -93,9 +95,11 @@ class ClaudeProvider(LLMProvider):
 
     @property
     def supports_temperature(self) -> bool:
+        """Claude calls here do not send a temperature, so return False."""
         return False
 
     def _map_error(self, exc: Exception) -> LLMError:
+        """Convert an Anthropic SDK error into one of our LLM error types."""
         a = self._anthropic
         if a is None:
             return LLMServerError("Claude call failed.")
@@ -117,6 +121,7 @@ class ClaudeProvider(LLMProvider):
         return LLMError("Unexpected Claude client error.")
 
     def _complete(self, request: LLMRequest) -> LLMResponse:
+        """Send one request to Claude and return its text and token usage."""
         params: dict[str, Any] = {
             "model": self.model,
             "max_tokens": request.max_tokens,

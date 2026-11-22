@@ -7,6 +7,7 @@ from app.llm.base import LLMProvider, LLMRequest, LLMResponse
 
 
 def build_provider(settings: Settings) -> LLMProvider:
+    """Create the AI provider chosen in settings (Claude, OpenAI or the offline mock)."""
     common = {
         "max_retries": settings.llm_max_retries,
         "backoff_base_seconds": settings.llm_backoff_base_seconds,

@@ -49,11 +49,13 @@ def create_app(
     settings: Settings | None = None,
     provider_factory: Callable[[], LLMProvider] | None = None,
 ) -> FastAPI:
+    """Build the FastAPI app: database, AI provider, security checks, routes and web UI."""
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
+        """Log start-up details and create the database tables when the app starts."""
         log_event(logger, "startup", app_env=settings.app_env, provider=settings.llm_provider,
                   auth_mode=settings.auth_mode)
         if settings.auth_mode == "dev":
@@ -79,6 +81,7 @@ def create_app(
 
     @app.middleware("http")
     async def request_guard(request: Request, call_next):  # type: ignore[no-untyped-def]
+        """Add a request ID, block oversized bodies and set security headers."""
         request_id = uuid.uuid4().hex[:12]
         request.state.request_id = request_id
         length = request.headers.get("content-length")
@@ -95,6 +98,7 @@ def create_app(
 
     @app.exception_handler(MedKidsError)
     async def medkids_error(request: Request, exc: MedKidsError) -> JSONResponse:
+        """Turn our own errors into safe JSON error responses."""
         # LLM errors may wrap provider messages or model output: return only a fixed safe message.
         if isinstance(exc, LLMError):
             message, details = SAFE_LLM_MESSAGES.get(exc.code, "The language model service failed."), {}
@@ -106,6 +110,7 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        """Return input validation errors as a clear 422 JSON response."""
         errors = [{"loc": list(e.get("loc", [])), "msg": e.get("msg", ""), "type": e.get("type", "")}
                   for e in exc.errors()]
         return JSONResponse(status_code=422, content={"error": {
@@ -114,6 +119,7 @@ def create_app(
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception) -> JSONResponse:
+        """Log unexpected errors and return a generic 500 without internal details."""
         rid = getattr(request.state, "request_id", None)
         logger.error("unhandled_error", exc_info=exc, extra={"ctx": {"request_id": rid, "path": request.url.path}})
         return JSONResponse(status_code=500, content={"error": {
@@ -121,6 +127,7 @@ def create_app(
 
     @app.get("/api/health", response_model=HealthResponse, tags=["health"])
     def health() -> HealthResponse:
+        """GET /api/health: report app, database and AI provider status."""
         db_status = "ok"
         try:
             with engine.connect() as conn:
@@ -139,6 +146,7 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
+        """Send visitors from / to the web UI."""
         return RedirectResponse(url="/ui/")
 
     return app

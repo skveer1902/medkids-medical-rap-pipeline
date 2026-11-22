@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def main() -> int:
+    """Create a .env for local use from .env.example, if none exists."""
     env = ROOT / ".env"
     if env.exists():
         print(".env already exists - leaving it unchanged.")

@@ -34,6 +34,7 @@ def approvals_for_current_version(rap: Rap) -> dict[str, str]:
 
 
 def approval_blockers(rap: Rap, settings: Settings) -> list[str]:
+    """List the reasons a rap cannot be approved yet."""
     blockers: list[str] = []
     if rap.status != "pending_review":
         blockers.append(f"rap is '{rap.status}', not 'pending_review'")
@@ -62,6 +63,7 @@ def approval_blockers(rap: Rap, settings: Settings) -> list[str]:
 
 
 def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Principal, settings: Settings) -> ReviewDecision:
+    """Record the reviewer's decision and move the rap to its next status."""
     if principal.role not in PERMISSIONS["review"]:
         raise PermissionDeniedError("only a reviewer can review raps")
     if rap.status in {"approved", "rejected"} and req.decision != "comment":
@@ -72,6 +74,7 @@ def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Princi
             raise PermissionDeniedError(
                 f"role '{principal.role}' is not a required approver ({settings.required_approval_roles})"
             )
+        # Approval needs passing checks and no open problems.
         blockers = approval_blockers(rap, settings)
         if blockers:
             raise WorkflowError("approval blocked: " + "; ".join(blockers), details={"blockers": blockers})
@@ -85,6 +88,7 @@ def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Princi
     elif req.decision == "reject" and rap.status not in {"pending_review", "revision_requested", "validation_failed", "draft"}:
         raise WorkflowError(f"cannot reject a rap in status '{rap.status}'")
 
+    # Every decision is saved for the audit trail.
     decision = ReviewDecision(
         rap_id=rap.id, rap_version_number=rap.current_version, reviewer_name=principal.name,
         reviewer_role=principal.role, decision=req.decision, feedback=req.feedback,
@@ -99,6 +103,7 @@ def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Princi
         if not missing:
             transition(session, rap, "approved", principal, f"approved by {sorted(approvals.items())}")
             rap.approved_at = datetime.now(timezone.utc)
+            # Write the final song to data/outputs/approved/.
             export_approved(rap, settings)
         log_event(logger, "rap_approval_recorded", rap_id=rap.id, role=principal.role, missing=len(missing))
     elif req.decision == "reject":
@@ -110,6 +115,7 @@ def review_rap(session: Session, rap: Rap, req: ReviewRequest, principal: Princi
 
 
 def export_payload(rap: Rap) -> dict[str, Any]:
+    """Build the approved song plus who approved it and how it was made."""
     if rap.status != "approved":
         raise WorkflowError("only approved raps can be exported")
     version = current_version(rap)
@@ -136,6 +142,7 @@ def export_payload(rap: Rap) -> dict[str, Any]:
 
 
 def export_approved(rap: Rap, settings: Settings) -> Path:
+    """Write the approved song to data/outputs/approved as JSON."""
     out_dir = Path(settings.outputs_dir) / "approved"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{rap.topic.slug}_rap{rap.id}_v{rap.current_version}.json"

@@ -30,6 +30,7 @@ def post_topic(
     settings: Settings = Depends(get_settings_dep),
     principal: Principal = Depends(requires("author")),
 ) -> TopicOut:
+    """POST /api/topics: create a topic from the submitted text, goals and rules."""
     topic = create_topic(db, body, principal, settings)
     db.commit()
     db.refresh(topic)
@@ -43,11 +44,13 @@ def get_topics(
     db: Session = Depends(get_db),
     _: Principal = Depends(requires("read")),
 ) -> list[TopicSummary]:
+    """GET /api/topics: list topics."""
     return [TopicSummary.model_validate(t) for t in list_topics(db, limit, offset)]
 
 
 @router.get("/{topic_id}", response_model=TopicOut)
 def get_topic_by_id(topic_id: int, db: Session = Depends(get_db), _: Principal = Depends(requires("read"))) -> TopicOut:
+    """GET /api/topics/{id}: return one topic with its sources and facts."""
     return TopicOut.model_validate(get_topic(db, topic_id))
 
 
@@ -59,6 +62,7 @@ def extract_facts(
     pipeline: Pipeline = Depends(get_pipeline),
     _: Principal = Depends(requires("author")),
 ) -> FactExtractionResponse:
+    """POST /api/topics/{id}/facts/extract: ask the AI to propose facts from the source text."""
     topic = get_topic(db, topic_id)
     extractor = FactExtractor(pipeline.provider, json_max_attempts=pipeline.settings.llm_json_max_attempts)
     run_id, created = extractor.extract(db, topic)
@@ -80,6 +84,7 @@ def approve_topic_facts(
     db: Session = Depends(get_db),
     principal: Principal = Depends(requires("approve_facts")),
 ) -> FactApprovalResponse:
+    """POST /api/topics/{id}/facts/approve: reviewer approves, rejects or adds facts."""
     topic = get_topic(db, topic_id)
     result = approve_facts(db, topic, body, principal)
     db.commit()

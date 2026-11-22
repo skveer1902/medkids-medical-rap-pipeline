@@ -24,6 +24,7 @@ def generate(
     settings: Settings = Depends(get_settings_dep),
     principal: Principal = Depends(requires("author")),
 ) -> GenerateResponse:
+    """POST /api/raps/generate: write new rap(s) from a topic's approved facts."""
     raps = pipeline.generate(db, body, principal)
     return GenerateResponse(raps=[rap_detail(r, settings) for r in raps])
 
@@ -37,6 +38,7 @@ def list_raps(
     db: Session = Depends(get_db),
     _: Principal = Depends(requires("read")),
 ) -> list[RapSummary]:
+    """GET /api/raps: list raps, optionally filtered by topic or status."""
     q = select(Rap).order_by(Rap.id.desc())
     if topic_id is not None:
         q = q.where(Rap.topic_id == topic_id)
@@ -52,4 +54,5 @@ def get_rap_detail(
     settings: Settings = Depends(get_settings_dep),
     _: Principal = Depends(requires("read")),
 ) -> RapDetail:
+    """GET /api/raps/{id}: return one rap with its lyrics, reports and score."""
     return rap_detail(get_rap(db, rap_id), settings)

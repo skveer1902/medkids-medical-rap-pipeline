@@ -39,6 +39,7 @@ class Rule:
 
 
 def _r(p: str) -> re.Pattern[str]:
+    """Compile a case-insensitive regex."""
     return re.compile(p, re.IGNORECASE)
 
 
@@ -101,6 +102,7 @@ _NEGATION = re.compile(r"(don'?t\s+be|no\s+need\s+to\s+be|not|never|nothing|no)\
 
 
 def rule_findings(lyrics: Lyrics) -> list[SafetyFinding]:
+    """Find scary, rude or unsafe lines using the built-in rules."""
     findings: list[SafetyFinding] = []
     for line in lyrics.all_lines():
         for rule in RULES:
@@ -121,6 +123,7 @@ def rule_findings(lyrics: Lyrics) -> list[SafetyFinding]:
 
 
 def complexity_findings(lyrics: Lyrics, band: str, required_vocabulary: list[str]) -> list[SafetyFinding]:
+    """Flag lines that are too long or use hard words for the age band."""
     profile = get_profile(band)
     allowed = {w for term in required_vocabulary for w in words(term)}
     findings: list[SafetyFinding] = []
@@ -150,6 +153,7 @@ def complexity_findings(lyrics: Lyrics, band: str, required_vocabulary: list[str
 
 
 def structure_findings(lyrics: Lyrics) -> list[SafetyFinding]:
+    """Flag missing required sections (verse 1, chorus, verse 2)."""
     findings: list[SafetyFinding] = []
     names = [s.section for s in lyrics.sections]
     for required in ("verse_1", "chorus", "verse_2"):
@@ -165,12 +169,15 @@ def structure_findings(lyrics: Lyrics) -> list[SafetyFinding]:
 
 class SafetyValidator:
     def __init__(self, provider: LLMProvider, *, json_max_attempts: int = 3) -> None:
+        """Store the AI provider used for the safety check."""
         self.provider = provider
         self.json_max_attempts = json_max_attempts
 
     def validate(self, *, topic: str, band: str, lyrics: Lyrics, required_vocabulary: list[str]) -> SafetyReport:
+        """Run the rule checks and the AI check, then combine them into one report."""
         findings = rule_findings(lyrics) + complexity_findings(lyrics, band, required_vocabulary) + structure_findings(lyrics)
         line_ids = set(lyrics.line_map())
+        # Then ask the AI for subtler tone problems the rules cannot catch.
         llm_ok = True
         try:
             out: LLMSafetyOutput = self.provider.generate_json(
@@ -190,6 +197,7 @@ class SafetyValidator:
                 explanation="Automated subjective safety review was unavailable; a human must review tone.",
                 source="rule"))
 
+        # Critical or major findings fail the song; minor ones need a human look.
         blocking = [f for f in findings if f.severity in ("critical", "major")]
         failing = sorted({f.line_id for f in blocking if f.line_id})
         if blocking:

@@ -27,6 +27,7 @@ class OpenAIProvider(LLMProvider):
     name = "openai"
 
     def __init__(self, model: str, api_key: str, *, client: Any | None = None, **kwargs: Any) -> None:
+        """Set up the OpenAI client for the chosen model."""
         super().__init__(model, **kwargs)
         if not api_key and client is None:
             raise LLMConfigurationError("OPENAI_API_KEY is not set.")
@@ -44,6 +45,7 @@ class OpenAIProvider(LLMProvider):
             self._client = openai.OpenAI(api_key=api_key, timeout=self.timeout_seconds, max_retries=0)
 
     def _map_error(self, exc: Exception) -> LLMError:
+        """Convert an OpenAI SDK error into one of our LLM error types."""
         o = self._openai
         if o is None:
             return LLMServerError("OpenAI call failed.")
@@ -63,6 +65,7 @@ class OpenAIProvider(LLMProvider):
         return LLMError("Unexpected OpenAI client error.")
 
     def _complete(self, request: LLMRequest) -> LLMResponse:
+        """Send one request to the OpenAI Responses API and return text and usage."""
         params: dict[str, Any] = {
             "model": self.model,
             "instructions": request.system,

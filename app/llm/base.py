@@ -80,6 +80,7 @@ class UsageTracker:
     calls: list[CallRecord] = field(default_factory=list)
 
     def record(self, rec: CallRecord) -> None:
+        """Add one AI call's tokens and cost to the running totals."""
         self.calls.append(rec)
         self.input_tokens += rec.input_tokens
         self.output_tokens += rec.output_tokens
@@ -87,6 +88,7 @@ class UsageTracker:
             self.estimated_cost_usd = (self.estimated_cost_usd or 0.0) + rec.estimated_cost_usd
 
     def drain(self) -> list[CallRecord]:
+        """Return the recorded calls and clear the list."""
         calls, self.calls = self.calls, []
         return calls
 
@@ -157,6 +159,7 @@ class LLMProvider(ABC):
         price_output_per_mtok: float | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
+        """Store the model name, retry, timeout and pricing settings shared by all providers."""
         if not model:
             raise ValueError("model must be provided via configuration")
         self.model = model
@@ -176,11 +179,13 @@ class LLMProvider(ABC):
 
     @property
     def supports_temperature(self) -> bool:
+        """Say whether this provider accepts a temperature setting."""
         return True
 
     # -- cost ------------------------------------------------------------
 
     def estimate_cost(self, input_tokens: int, output_tokens: int) -> float | None:
+        """Estimate the dollar cost of a call from its token counts, if prices are set."""
         if self.price_input_per_mtok is None or self.price_output_per_mtok is None:
             return None
         return round(

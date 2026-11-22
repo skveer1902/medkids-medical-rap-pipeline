@@ -41,6 +41,7 @@ SCHEMA_VERSION = "1"
 
 
 def utcnow() -> datetime:
+    """Return the current time in UTC (used for timestamps)."""
     return datetime.now(timezone.utc)
 
 
@@ -307,6 +308,7 @@ class LLMCallLog(Base):
 
 
 def make_engine(database_url: str) -> Engine:
+    """Create the SQLAlchemy engine for the database URL (SQLite-friendly)."""
     kwargs: dict[str, Any] = {}
     if database_url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
@@ -318,6 +320,7 @@ def make_engine(database_url: str) -> Engine:
 
         @event.listens_for(engine, "connect")
         def _sqlite_pragmas(dbapi_conn, _record):  # type: ignore[no-untyped-def]
+            """Turn on foreign-key checks for every new SQLite connection."""
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA foreign_keys=ON")
             cur.close()
@@ -346,10 +349,12 @@ def init_db(engine: Engine) -> None:
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:
+    """Create the factory that opens database sessions."""
     return sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
 
 
 def session_scope(factory: sessionmaker[Session]) -> Iterator[Session]:
+    """Open a session for a with-block and always close it."""
     session = factory()
     try:
         yield session

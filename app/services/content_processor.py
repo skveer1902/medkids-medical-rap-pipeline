@@ -40,14 +40,17 @@ class ProcessedSource:
 
     @property
     def flagged_sentence_indexes(self) -> set[int]:
+        """Return the numbers of sentences flagged as possible hidden instructions."""
         return {int(f["sentence_index"]) for f in self.flags if "sentence_index" in f}
 
 
 def detect_injection(text: str) -> bool:
+    """Return True if text looks like an instruction aimed at the AI."""
     return any(p.search(text) for p in _INJECTION_PATTERNS)
 
 
 def process_source(raw: str, *, max_chars: int, source_key: str = "src_001") -> ProcessedSource:
+    """Clean the source text, check its size and flag suspicious sentences."""
     content = normalize_text(raw)
     if not content:
         raise InputRejectedError("educational_content is empty after normalisation")

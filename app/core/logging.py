@@ -19,12 +19,14 @@ _SECRET_PATTERNS = [
 
 
 def redact(text: str) -> str:
+    """Hide API keys and secrets in a piece of log text."""
     text = _SECRET_PATTERNS[0].sub("[REDACTED]", text)
     return _SECRET_PATTERNS[1].sub(lambda m: f"{m.group(1)}{m.group(2)}[REDACTED]", text)
 
 
 class RedactingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        """Redact secrets from a log record before it is written."""
         try:
             message = record.getMessage()
         except Exception:  # pragma: no cover - malformed record args
@@ -36,6 +38,7 @@ class RedactingFilter(logging.Filter):
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
+        """Write a log record as one line of JSON."""
         payload: dict[str, object] = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
@@ -51,6 +54,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str = "INFO") -> None:
+    """Set up JSON logging with secret redaction at the given level."""
     root = logging.getLogger()
     root.setLevel(level.upper())
     for handler in list(root.handlers):
@@ -64,6 +68,7 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
+    """Return a named logger."""
     return logging.getLogger(name)
 
 

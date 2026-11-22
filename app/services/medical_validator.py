@@ -61,6 +61,7 @@ class ForbiddenRule:
 
 
 def build_rules(forbidden_claims: list[dict]) -> list[ForbiddenRule]:
+    """Combine the global misconception rules with the topic's forbidden claims."""
     rules = [ForbiddenRule(c, p) for c, p in GLOBAL_MISCONCEPTIONS]
     for fc in forbidden_claims:
         if fc.get("pattern"):
@@ -73,6 +74,7 @@ _SEVERITY = {"contradicted": "critical", "unsupported": "major", "ambiguous": "m
 
 class MedicalValidator:
     def __init__(self, provider: LLMProvider, *, json_max_attempts: int = 3) -> None:
+        """Store the AI provider used for the medical check."""
         self.provider = provider
         self.json_max_attempts = json_max_attempts
 
@@ -85,6 +87,7 @@ class MedicalValidator:
         facts: list[dict[str, str]],
         forbidden_claims: list[dict],
     ) -> MedicalAccuracyReport:
+        """Check every lyric line against approved facts and misconceptions; fail closed."""
         fact_by_id = {f["fact_id"]: f for f in facts}
         line_map = lyrics.line_map()
         claims: list[ClaimResult] = []
@@ -195,6 +198,7 @@ class MedicalValidator:
 
     @staticmethod
     def _fallback_claims(lyrics: Lyrics, fact_by_id: dict[str, dict[str, str]]) -> list[ClaimResult]:
+        """If the AI check fails, mark lines supported only when they closely match their fact."""
         out: list[ClaimResult] = []
         for line in lyrics.all_lines():
             for fid in line.fact_ids:

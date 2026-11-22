@@ -6,6 +6,7 @@ from tests.conftest import h
 
 
 def test_root_redirects_to_ui_and_assets_are_served(client):
+    """Check that root redirects to ui and assets are served."""
     r = client.get("/", follow_redirects=False)
     assert r.status_code in (302, 307) and r.headers["location"] == "/ui/"
     page = client.get("/ui/")
@@ -17,11 +18,13 @@ def test_root_redirects_to_ui_and_assets_are_served(client):
 
 
 def test_ui_does_not_use_innerhtml_for_server_data(client):
+    """Check that ui does not use innerhtml for server data."""
     js = client.get("/ui/app.js").text
     assert ".innerHTML" not in js and ".outerHTML" not in js and "insertAdjacentHTML" not in js
 
 
 def test_me_reports_role_and_permissions(client):
+    """Check that me reports role and permissions."""
     assert client.get("/api/me").status_code == 401
     me = client.get("/api/me", headers=h("reviewer")).json()
     assert me["name"] == "rita-reviewer" and me["role"] == "reviewer"
@@ -31,6 +34,7 @@ def test_me_reports_role_and_permissions(client):
 
 
 def test_samples_require_auth_and_match_topic_schema(client):
+    """Check that samples require auth and match topic schema."""
     assert client.get("/api/samples").status_code == 401
     samples = client.get("/api/samples", headers=h("author")).json()
     assert {"Heart", "Brain", "Lungs", "Bones", "Stomach", "Eyes", "Teeth", "Skin", "Muscles", "Kidneys"} == {s["topic"] for s in samples}
@@ -40,6 +44,7 @@ def test_samples_require_auth_and_match_topic_schema(client):
 
 
 def test_health_reports_local_mode(tmp_path, mock):
+    """Check that health reports local mode."""
     from fastapi.testclient import TestClient
 
     from app.main import create_app
@@ -53,6 +58,7 @@ def test_health_reports_local_mode(tmp_path, mock):
 
 
 def test_ui_has_no_logo_or_tagline(client):
+    """Check that ui has no logo or tagline."""
     page = client.get("/ui/").text
     assert "brand-mark" not in page and "Approved facts in" not in page
     assert 'value="reviewer"' in page and "medical_reviewer" not in page and "educator" not in page

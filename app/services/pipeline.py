@@ -62,10 +62,12 @@ class TopicContext:
 
     @property
     def forbidden_texts(self) -> list[str]:
+        """Return just the text of each forbidden claim."""
         return [f["claim"] for f in self.forbidden]
 
 
 def topic_context(topic: Topic, fact_keys: list[str] | None = None) -> TopicContext:
+    """Gather a topic's approved facts, goals and rules for the pipeline steps."""
     facts = approved_facts(topic)
     if fact_keys is not None:
         facts = [f for f in facts if f.fact_key in set(fact_keys)]
@@ -77,6 +79,7 @@ def topic_context(topic: Topic, fact_keys: list[str] | None = None) -> TopicCont
 
 
 def current_version(rap: Rap) -> RapVersion:
+    """Return the rap's current lyrics version."""
     for v in rap.versions:
         if v.version_number == rap.current_version:
             return v
@@ -84,15 +87,18 @@ def current_version(rap: Rap) -> RapVersion:
 
 
 def latest_validation(version: RapVersion, kind: str) -> ValidationResult | None:
+    """Return the newest medical or safety report for a version."""
     found = [v for v in version.validations if v.kind == kind]
     return found[-1] if found else None
 
 
 def latest_evaluation(version: RapVersion) -> Evaluation | None:
+    """Return the newest score for a version."""
     return version.evaluations[-1] if version.evaluations else None
 
 
 def get_rap(session: Session, rap_id: int) -> Rap:
+    """Load a rap by ID or raise a not-found error."""
     rap = session.get(Rap, rap_id)
     if rap is None:
         raise NotFoundError(f"rap {rap_id} not found")
@@ -101,6 +107,7 @@ def get_rap(session: Session, rap_id: int) -> Rap:
 
 class Pipeline:
     def __init__(self, settings: Settings, provider: LLMProvider) -> None:
+        """Create every pipeline step with the shared settings and AI provider."""
         self.settings = settings
         self.provider = provider
         n = settings.llm_json_max_attempts
@@ -117,6 +124,7 @@ class Pipeline:
     # -- bookkeeping --------------------------------------------------------
 
     def _persist_llm_calls(self, session: Session, run_id: str) -> None:
+        """Save each AI call's tokens and cost to the database."""
         for c in self.provider.usage.drain():
             session.add(LLMCallLog(
                 run_id=run_id, task=c.task, provider=c.provider, model=c.model, prompt_name=c.prompt_name,
@@ -128,21 +136,25 @@ class Pipeline:
     # -- generation --------------------------------------------------------
 
     def generate(self, session: Session, req: RapGenerateRequest, principal: Principal) -> list[Rap]:
+        """Write rap candidates from approved facts and save each as version 1."""
         topic = get_topic(session, req.topic_id)
         if req.num_candidates > self.settings.max_candidates_per_request:
             raise InputRejectedError(
                 f"num_candidates must be <= {self.settings.max_candidates_per_request}"
             )
+        # Only reviewer-approved facts may be used in a song.
         ctx = topic_context(topic)
         if not ctx.facts:
             raise WorkflowError(
-                "topic has no approved facts; extract candidates and have a medical reviewer approve them first"
+                "topic has no approved facts; extract candidates and have the reviewer approve them first"
             )
+        # Pick the age band, then reword facts so children of that age can follow them.
         band = resolve_age_band(topic.target_age_min, topic.target_age_max, req.age_band)
         simplified, notes = self.age_adapter.simplify_facts(
             topic=topic.title, band=band, facts=ctx.facts, objectives=ctx.objectives,
             forbidden_patterns=compile_forbidden_patterns(topic),
         )
+        # Everything the song writer needs: facts, goals, banned claims, layout.
         spec = GenerationSpec(
             topic_title=topic.title, age_band=band, style=req.style, num_verses=req.num_verses,
             chorus=req.chorus, include_intro=req.include_intro, include_outro=req.include_outro,
@@ -151,6 +163,7 @@ class Pipeline:
         )
         raps: list[Rap] = []
         for _ in range(req.num_candidates):
+            # Ask the AI for one song candidate.
             gen = self.generator.generate(spec)
             rap = Rap(
                 topic_id=topic.id, status="draft", age_band=band, style=req.style,
@@ -173,6 +186,7 @@ class Pipeline:
                                       reason="generated", version_number=1))
             self._persist_llm_calls(session, gen.run_id)
             session.commit()
+            # Optionally check, score and auto-fix the new song straight away.
             if req.run_pipeline:
                 self.run_checks(session, rap, auto_revise=req.auto_revise)
             raps.append(rap)
@@ -181,22 +195,26 @@ class Pipeline:
     # -- validation ----------------------------------------------------------
 
     def validate(self, session: Session, rap: Rap) -> tuple[MedicalAccuracyReport, SafetyReport]:
+        """Run medical and safety checks on the current version and save the reports."""
         if rap.status not in {"draft", "validation_failed", "pending_review"}:
             raise WorkflowError(f"cannot validate a rap in status '{rap.status}'")
         version = current_version(rap)
         topic = rap.topic
+        # Check against the same facts the song was written from.
         ctx = topic_context(topic, version.approved_fact_keys)
         lyrics = Lyrics.model_validate(version.lyrics)
         medical = self.medical.validate(topic=topic.title, band=rap.age_band, lyrics=lyrics,
                                         facts=ctx.facts, forbidden_claims=ctx.forbidden)
         safety = self.safety.validate(topic=topic.title, band=rap.age_band, lyrics=lyrics,
                                       required_vocabulary=list(topic.required_vocabulary or []))
+        # Save both reports against this version.
         version.validations.append(ValidationResult(kind="medical", status=medical.status,
                                                     report=medical.model_dump(), validator_version=MEDICAL_VERSION,
                                                     run_id=version.run_id))
         version.validations.append(ValidationResult(kind="safety", status=safety.status,
                                                     report=safety.model_dump(), validator_version=SAFETY_VERSION,
                                                     run_id=version.run_id))
+        # Any failed check sends the song to validation_failed.
         if medical.status == "failed" or safety.status == "failed":
             transition(session, rap, "validation_failed", SYSTEM_ACTOR,
                        f"medical={medical.status}, safety={safety.status}")
@@ -207,6 +225,7 @@ class Pipeline:
         return medical, safety
 
     def evaluate(self, session: Session, rap: Rap) -> EvaluationReport:
+        """Score the current version, apply must-pass gates and set the next status."""
         if rap.status not in {"draft", "validation_failed", "pending_review"}:
             raise WorkflowError(f"cannot evaluate a rap in status '{rap.status}'")
         version = current_version(rap)
@@ -229,6 +248,7 @@ class Pipeline:
             recommendations=report.recommendations, rubric_version=report.rubric_version,
             weights=dict(self.settings.score_weights), threshold=report.threshold,
         ))
+        # All must-pass checks passed: the song goes to the reviewer.
         if all(report.hard_gates.values()):
             if rap.status == "draft":
                 note = "automated checks passed" if report.soft_score_passed else (
@@ -249,6 +269,7 @@ class Pipeline:
         medical = MedicalAccuracyReport.model_validate(med_row.report) if med_row else None
         safety = SafetyReport.model_validate(saf_row.report) if saf_row else None
 
+        # Reviewer asked for changes: fix the lines they flagged.
         if rap.status == "revision_requested":
             change_type = "reviewer_revision"
             issues = [i for r in rap.reviews if r.rap_version_number == version.version_number
@@ -260,6 +281,7 @@ class Pipeline:
                     "or generate a new rap"
                 )
         elif rap.status == "validation_failed":
+            # Automatic fix: allowed only up to the revision limit.
             change_type = "auto_revision"
             if rap.auto_revision_attempts >= self.settings.max_revision_attempts:
                 rap.needs_human_intervention = True
@@ -281,6 +303,7 @@ class Pipeline:
         simplified = {f["fact_id"]: f.get("simplified_text", f["text"])
                       for f in rap.generation_request.get("simplified_facts", [])}
         facts = [{**f, "simplified_text": simplified.get(f["fact_id"], f["text"])} for f in ctx.facts]
+        # Ask the AI to rewrite only the flagged lines.
         result = self.reviser.revise(
             topic=rap.topic.title, band=rap.age_band, lyrics=Lyrics.model_validate(version.lyrics),
             facts=facts, forbidden_claims=ctx.forbidden_texts, problems=problems,
@@ -290,6 +313,7 @@ class Pipeline:
             self._persist_llm_calls(session, version.run_id)
             session.commit()
             return False
+        # Save the rewrite as a new version; older versions are kept.
         new_number = version.version_number + 1
         rap.versions.append(RapVersion(
             version_number=new_number, title=result.lyrics.title, lyrics=result.lyrics.model_dump(),
@@ -319,6 +343,7 @@ class Pipeline:
         """Validate + evaluate, then auto-revise at most MAX_REVISION_ATTEMPTS times."""
         self.validate(session, rap)
         self.evaluate(session, rap)
+        # Keep fixing and re-checking until it passes or the limit is hit.
         while auto_revise and rap.status == "validation_failed":
             if rap.auto_revision_attempts >= self.settings.max_revision_attempts:
                 rap.needs_human_intervention = True

@@ -3,7 +3,7 @@
 The LLM only PROPOSES facts. Each proposal is checked deterministically
 against the stored source text; anything that cannot be grounded is stored
 as ``uncertain``. Nothing ever becomes ``approved`` except through
-:func:`approve_facts`, which requires a human medical reviewer.
+:func:`approve_facts`, which requires the human reviewer.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ FACT_APPROVER_ROLES = {"reviewer"}
 
 
 def compile_forbidden_patterns(topic: Topic) -> list[re.Pattern[str]]:
+    """Compile the topic's forbidden-claim patterns into regexes."""
     patterns = []
     for fc in topic.forbidden_claims or []:
         if fc.get("pattern"):
@@ -38,6 +39,7 @@ def compile_forbidden_patterns(topic: Topic) -> list[re.Pattern[str]]:
 
 
 def _next_fact_key(topic: Topic) -> str:
+    """Make the next unused fact ID for a topic, e.g. heart_fact_007."""
     existing = [f.fact_key for f in topic.facts]
     n = len(existing) + 1
     while f"{topic.slug}_fact_{n:03d}" in existing:
@@ -46,16 +48,19 @@ def _next_fact_key(topic: Topic) -> str:
 
 
 def approved_facts(topic: Topic) -> list[Fact]:
+    """Return only the facts a reviewer has approved."""
     return [f for f in topic.facts if f.status == "approved"]
 
 
 class FactExtractor:
     def __init__(self, provider: LLMProvider, *, json_max_attempts: int = 3, max_facts: int = 15) -> None:
+        """Store the AI provider and the limits for fact extraction."""
         self.provider = provider
         self.json_max_attempts = json_max_attempts
         self.max_facts = max_facts
 
     def extract(self, session: Session, topic: Topic) -> tuple[str, list[Fact]]:
+        """Ask the AI for facts, keep only ones with a word-for-word quote, and save them."""
         run_id = uuid.uuid4().hex
         sources = [
             {"source_id": s.source_key, "version": s.version, "content": s.content} for s in topic.sources
@@ -71,11 +76,13 @@ class FactExtractor:
             forbidden_claims=[fc["claim"] for fc in topic.forbidden_claims or []],
             max_facts=self.max_facts,
         )
+        # The AI proposes facts; nothing is trusted until a reviewer approves it.
         result = self.provider.generate_json(request, LLMFactExtractionOutput, max_attempts=self.json_max_attempts)
         output: LLMFactExtractionOutput = result.data
 
         source_by_key = {s.source_key: s for s in topic.sources}
         forbidden = compile_forbidden_patterns(topic)
+        # Skip facts we already have.
         seen = {normalize_for_match(f.text) for f in topic.facts}
         created: list[Fact] = []
         for proposal in output.facts[: self.max_facts]:
@@ -89,6 +96,7 @@ class FactExtractor:
             if src is None:
                 reasons.append(f"unknown source id '{proposal.source_id}'")
             else:
+                # The evidence quote must appear word for word in the source text.
                 quote = normalize_for_match(proposal.evidence_quote)
                 if quote and quote in normalize_for_match(src.content):
                     verified = True
@@ -103,6 +111,7 @@ class FactExtractor:
             if proposal.classification == "uncertain":
                 reasons.append("model marked as uncertain" + (f": {proposal.note}" if proposal.note else ""))
 
+            # Any problem found marks the fact 'uncertain' so the reviewer sees why.
             fact = Fact(
                 topic_id=topic.id,
                 fact_key=_next_fact_key(topic),

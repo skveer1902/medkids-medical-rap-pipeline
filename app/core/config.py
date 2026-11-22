@@ -84,6 +84,7 @@ class Settings(BaseModel):
     @field_validator("score_weights")
     @classmethod
     def _check_weights(cls, v: dict[str, float]) -> dict[str, float]:
+        """Make sure the score weights name exactly the five criteria."""
         missing = set(DEFAULT_SCORE_WEIGHTS) - set(v)
         extra = set(v) - set(DEFAULT_SCORE_WEIGHTS)
         if missing or extra:
@@ -98,6 +99,7 @@ class Settings(BaseModel):
     @field_validator("required_approval_roles")
     @classmethod
     def _check_roles(cls, v: list[str]) -> list[str]:
+        """Map old role names to 'reviewer' and reject unknown approval roles."""
         v = list(dict.fromkeys(LEGACY_ROLE_ALIASES.get(r, r) for r in v))
         if not v:
             raise ValueError("at least one human approval role is required")
@@ -108,6 +110,7 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def _guard_production(self) -> Settings:
+        """Refuse unsafe settings (local mode, no keys, mock AI) when APP_ENV=production."""
         # The development-only reviewer mechanism can never be active in production.
         if self.app_env == "production":
             if self.auth_mode == "dev" or self.dev_auth_enabled:
@@ -129,6 +132,7 @@ class Settings(BaseModel):
 
     @property
     def active_model(self) -> str:
+        """Return the model name for the AI provider in use."""
         if self.llm_provider == "claude":
             return self.claude_model or ""
         if self.llm_provider == "openai":
@@ -157,6 +161,7 @@ def _parse_api_keys(raw: str | None) -> list[ApiKeyEntry]:
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
+    """Read a true/false setting from an environment variable."""
     raw = os.getenv(name)
     if raw is None:
         return default
@@ -164,6 +169,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 
 def _env_float(name: str) -> float | None:
+    """Read a number from an environment variable, or None if it is not set."""
     raw = os.getenv(name)
     if raw is None or raw.strip() == "":
         return None
@@ -233,4 +239,5 @@ def settings_from_env(load_dotenv_file: bool = True) -> Settings:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Load settings from the environment and .env file."""
     return settings_from_env()

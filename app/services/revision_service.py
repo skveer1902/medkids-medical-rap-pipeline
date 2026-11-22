@@ -27,9 +27,11 @@ def collect_problems(
     safety: SafetyReport | None,
     reviewer_issues: list[dict] | None = None,
 ) -> dict[str, list[str]]:
+    """Gather flagged lines and reasons from the checks and the reviewer."""
     problems: dict[str, list[str]] = {}
 
     def add(line_id: str | None, reason: str) -> None:
+        """Add one reason to a line's list of problems."""
         if line_id:
             problems.setdefault(line_id, []).append(reason)
 
@@ -63,6 +65,7 @@ class RevisionResult:
 
 
 def apply_revisions(lyrics: Lyrics, revised: dict[str, LyricLine], targets: set[str]) -> tuple[Lyrics, list[str]]:
+    """Swap in rewritten lines only for flagged line IDs; keep every other line."""
     changed: list[str] = []
     sections = []
     for s in lyrics.sections:
@@ -80,6 +83,7 @@ def apply_revisions(lyrics: Lyrics, revised: dict[str, LyricLine], targets: set[
 
 class RevisionService:
     def __init__(self, provider: LLMProvider, *, temperature: float | None, json_max_attempts: int = 3) -> None:
+        """Store the AI provider and revision settings."""
         self.provider = provider
         self.temperature = temperature if provider.supports_temperature else None
         self.json_max_attempts = json_max_attempts
@@ -94,6 +98,8 @@ class RevisionService:
         forbidden_claims: list[str],
         problems: dict[str, list[str]],
     ) -> RevisionResult:
+        """Ask the AI to rewrite flagged lines and return the new lyrics."""
+        # Only lines that exist and were flagged can be rewritten.
         targets = {lid for lid in problems if lid in lyrics.line_map()}
         request = build_revision_request(
             topic=topic, band=band, lyrics=lyrics, facts=facts, forbidden_claims=forbidden_claims,
@@ -108,6 +114,7 @@ class RevisionService:
             for r in out.revised_lines
         }
         ignored = sorted(set(revised) - targets)
+        # Enforced in code: any line the AI changed that was not flagged is ignored.
         new_lyrics, changed = apply_revisions(lyrics, revised, targets)
         template = load_prompt("lyric_revision")
         return RevisionResult(

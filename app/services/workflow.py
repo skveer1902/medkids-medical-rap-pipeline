@@ -35,6 +35,7 @@ HUMAN_ONLY = {"approved", "rejected", "revision_requested"}
 
 
 def transition(session: Session, rap: Rap, to_status: str, actor: Principal | str, reason: str | None = None) -> None:
+    """Move a rap to a new status if allowed, and log who did it and why."""
     from_status = rap.status
     if to_status == from_status:
         return

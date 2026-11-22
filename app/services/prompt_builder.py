@@ -43,9 +43,11 @@ class PromptTemplate:
     sha256: str
 
     def placeholders(self) -> set[str]:
+        """Return the {{names}} used in the template."""
         return set(_PLACEHOLDER_RE.findall(self.system)) | set(_PLACEHOLDER_RE.findall(self.user))
 
     def render(self, **values: Any) -> tuple[str, str]:
+        """Fill in the template; error if any value is missing or unexpected."""
         needed = self.placeholders()
         missing = needed - values.keys()
         if missing:
@@ -55,6 +57,7 @@ class PromptTemplate:
             raise KeyError(f"prompt '{self.name}' got unknown values: {sorted(unknown)}")
 
         def sub(text: str) -> str:
+            """Replace each {{name}} in the text with its value."""
             return _PLACEHOLDER_RE.sub(lambda m: str(values[m.group(1)]), text)
 
         return sub(self.system), sub(self.user)
@@ -62,6 +65,7 @@ class PromptTemplate:
 
 @cache
 def load_prompt(name: str) -> PromptTemplate:
+    """Read a prompt file from app/prompts, with its name, version and hash."""
     path = PROMPTS_DIR / f"{name}.txt"
     raw = path.read_text(encoding="utf-8")
     header: dict[str, str] = {}
@@ -82,6 +86,7 @@ def load_prompt(name: str) -> PromptTemplate:
 
 
 def list_prompt_versions() -> dict[str, dict[str, str]]:
+    """Return the version and hash of every prompt template."""
     out = {}
     for path in sorted(PROMPTS_DIR.glob("*.txt")):
         t = load_prompt(path.stem)
@@ -95,16 +100,19 @@ def list_prompt_versions() -> dict[str, dict[str, str]]:
 
 
 def _bullets(items: list[str]) -> str:
+    """Turn a list into bullet lines, or '- (none)' when empty."""
     return "\n".join(f"- {i}" for i in items) if items else "- (none)"
 
 
 def format_objectives(objectives: list[dict[str, str]]) -> str:
+    """Format learning goals for a prompt, wrapped as untrusted data."""
     return "\n".join(
         wrap_untrusted("untrusted_objective", o["text"], id=o["objective_id"]) for o in objectives
     ) or "(none)"
 
 
 def format_facts(facts: list[dict[str, str]], *, simplified: bool = False) -> str:
+    """Format approved facts (and child-friendly wording) for a prompt."""
     rows = []
     for f in facts:
         text = f["text"]
@@ -115,16 +123,19 @@ def format_facts(facts: list[dict[str, str]], *, simplified: bool = False) -> st
 
 
 def format_forbidden(claims: list[str]) -> str:
+    """Format forbidden claims for a prompt, wrapped as untrusted data."""
     return "\n".join(wrap_untrusted("untrusted_forbidden_claim", c) for c in claims) or "(none)"
 
 
 def format_lyrics(lyrics: Lyrics) -> str:
+    """Format lyrics with line IDs for a prompt, wrapped as untrusted data."""
     rows = [f"[{s.section}]\n" + "\n".join(f"{ln.line_id}: {ln.text}" for ln in s.lines) for s in lyrics.sections]
     return wrap_untrusted("untrusted_lyrics", "\n".join(rows))
 
 
 def _request(template: PromptTemplate, task: str, values: dict[str, Any], *, max_tokens: int,
              temperature: float | None, context: dict[str, Any]) -> LLMRequest:
+    """Render a template and package it as an LLMRequest with its version info."""
     system, user = template.render(**values)
     return LLMRequest(
         task=task,
@@ -154,6 +165,7 @@ def build_fact_extraction_request(
     max_facts: int = 15,
     max_tokens: int = 2000,
 ) -> LLMRequest:
+    """Build the prompt that asks the AI to pull facts from the source text."""
     t = load_prompt("fact_extraction")
     src = "\n\n".join(
         wrap_untrusted("untrusted_source_document", s["content"], id=s["source_id"], version=s["version"])
@@ -175,6 +187,7 @@ def build_fact_extraction_request(
 def build_simplification_request(
     *, topic: str, band: str, facts: list[dict[str, str]], objectives: list[dict[str, str]], max_tokens: int = 1500
 ) -> LLMRequest:
+    """Build the prompt that rewords facts for the age band."""
     t = load_prompt("age_simplification")
     profile = get_profile(band)
     values = {
@@ -201,6 +214,7 @@ def build_arrangement(spec: GenerationSpec) -> list[str]:
 
 
 def describe_structure(spec: GenerationSpec) -> str:
+    """Describe the song layout (verses, chorus, lines) for the prompt."""
     profile = get_profile(spec.age_band)
     parts = []
     if spec.include_intro:
@@ -221,6 +235,7 @@ def describe_structure(spec: GenerationSpec) -> str:
 
 
 def build_generation_request(spec: GenerationSpec, *, temperature: float | None, max_tokens: int) -> LLMRequest:
+    """Build the prompt that asks the AI to write the rap."""
     t = load_prompt("rap_generation")
     profile = get_profile(spec.age_band)
     values = {
@@ -242,6 +257,7 @@ def build_medical_validation_request(
     *, topic: str, band: str, lyrics: Lyrics, facts: list[dict[str, str]], forbidden_claims: list[str],
     max_tokens: int = 3000,
 ) -> LLMRequest:
+    """Build the prompt for the AI medical check."""
     t = load_prompt("medical_validation")
     values = {
         "topic": topic,
@@ -255,6 +271,7 @@ def build_medical_validation_request(
 
 
 def build_safety_request(*, topic: str, band: str, lyrics: Lyrics, max_tokens: int = 2000) -> LLMRequest:
+    """Build the prompt for the AI safety check."""
     t = load_prompt("safety_validation")
     values = {"topic": topic, "age_band": band, "lyrics": format_lyrics(lyrics)}
     return _request(t, "safety_validation", values, max_tokens=max_tokens, temperature=0.0,
@@ -265,6 +282,7 @@ def build_revision_request(
     *, topic: str, band: str, lyrics: Lyrics, facts: list[dict[str, str]], forbidden_claims: list[str],
     problems: dict[str, list[str]], temperature: float | None, max_tokens: int = 2000,
 ) -> LLMRequest:
+    """Build the prompt that asks the AI to rewrite only flagged lines."""
     t = load_prompt("lyric_revision")
     profile = get_profile(band)
     line_map = lyrics.line_map()
@@ -291,4 +309,5 @@ def build_revision_request(
 
 
 def prompt_fingerprint(request: LLMRequest) -> str:
+    """Return a SHA-256 fingerprint of the exact prompt sent."""
     return sha256(json.dumps({"s": request.system, "p": request.prompt}, sort_keys=True))

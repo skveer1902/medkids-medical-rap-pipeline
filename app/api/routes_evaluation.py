@@ -23,6 +23,7 @@ def validate(
     settings: Settings = Depends(get_settings_dep),
     _: Principal = Depends(requires("author")),
 ) -> dict[str, Any]:
+    """POST /api/raps/{id}/validate: run the medical and safety checks on the current version."""
     rap = get_rap(db, rap_id)
     medical, safety = pipeline.validate(db, rap)
     return {"medical_accuracy": medical.model_dump(), "child_safety": safety.model_dump(),
@@ -37,6 +38,7 @@ def evaluate(
     settings: Settings = Depends(get_settings_dep),
     _: Principal = Depends(requires("author")),
 ) -> dict[str, Any]:
+    """POST /api/raps/{id}/evaluate: score the current version and apply the must-pass gates."""
     rap = get_rap(db, rap_id)
     report = pipeline.evaluate(db, rap)
     return {"evaluation": report.model_dump(), "rap": rap_detail(rap, settings).model_dump(mode="json")}
@@ -51,6 +53,7 @@ def revise(
     settings: Settings = Depends(get_settings_dep),
     principal: Principal = Depends(requires("author")),
 ) -> dict[str, Any]:
+    """POST /api/raps/{id}/revise: rewrite only the flagged lines, then re-check the new version."""
     rap = get_rap(db, rap_id)
     changed = pipeline.revise(db, rap, principal, auto_validate=body.auto_validate)
     return {"changed": changed, "rap": rap_detail(rap, settings).model_dump(mode="json")}

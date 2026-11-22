@@ -14,12 +14,14 @@ from tests.test_pipeline import rap_json
 
 
 def create_topic(client, name="heart") -> int:
+    """Create a sample topic through the API and return its ID."""
     r = client.post("/api/topics", json=load_sample(name), headers=h("author"))
     assert r.status_code == 201, r.text
     return r.json()["id"]
 
 
 def ready_topic(client) -> int:
+    """Create a topic and approve its facts so raps can be generated."""
     tid = create_topic(client)
     ex = client.post(f"/api/topics/{tid}/facts/extract", headers=h("author"))
     assert ex.status_code == 200
@@ -30,24 +32,28 @@ def ready_topic(client) -> int:
 
 
 def generate(client, tid, **kw) -> dict:
+    """Generate a rap through the API and return the first one."""
     r = client.post("/api/raps/generate", json={"topic_id": tid, **kw}, headers=h("author"))
     assert r.status_code == 201, r.text
     return r.json()["raps"][0]
 
 
 def review(client, rap_id, who, decision, **kw):
+    """Send a review decision for a rap as the given user."""
     return client.post(f"/api/raps/{rap_id}/review", json={"decision": decision, **kw}, headers=h(who))
 
 
 # --- basics -------------------------------------------------------------------------------------
 
 def test_health_is_public(client):
+    """Check that health is public."""
     r = client.get("/api/health")
     assert r.status_code == 200 and r.json()["status"] == "ok" and r.json()["database"] == "ok"
     assert "X-Request-ID" in r.headers
 
 
 def test_openapi_lists_all_required_endpoints(client):
+    """Check that openapi lists all required endpoints."""
     paths = client.get("/openapi.json").json()["paths"]
     for p in ["/api/topics", "/api/topics/{topic_id}", "/api/topics/{topic_id}/facts/extract",
               "/api/topics/{topic_id}/facts/approve", "/api/raps/generate", "/api/raps", "/api/raps/{rap_id}",
@@ -59,16 +65,19 @@ def test_openapi_lists_all_required_endpoints(client):
 @pytest.mark.parametrize("method,path", [("get", "/api/topics"), ("get", "/api/raps"), ("get", "/api/raps/1"),
                                          ("post", "/api/raps/1/review"), ("get", "/api/raps/1/history")])
 def test_unpublished_content_requires_authentication(client, method, path):
+    """Check that unpublished content requires authentication."""
     r = getattr(client, method)(path)
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthenticated"
     assert getattr(client, method)(path, headers={"X-API-Key": "wrong-key-000000000"}).status_code == 401
 
 
 def test_dev_header_rejected_unless_dev_mode(client):
+    """Check that dev header rejected unless dev mode."""
     assert client.get("/api/topics", headers={"X-Dev-User": "eve:reviewer"}).status_code == 401
 
 
 def test_dev_mode_works_only_when_explicitly_enabled(tmp_path, mock):
+    """Check that dev mode works only when explicitly enabled."""
     app = create_app(make_settings(tmp_path, auth_mode="dev", dev_auth_enabled=True), provider_factory=lambda: mock)
     with TestClient(app) as c:
         assert c.get("/api/topics", headers={"X-Dev-User": "eve:reviewer"}).status_code == 200
@@ -76,6 +85,7 @@ def test_dev_mode_works_only_when_explicitly_enabled(tmp_path, mock):
 
 
 def test_input_validation_errors_are_422(client):
+    """Check that input validation errors are 422."""
     bad = load_sample("heart") | {"target_age_min": 9, "target_age_max": 5}
     r = client.post("/api/topics", json=bad, headers=h("author"))
     assert r.status_code == 422 and r.json()["error"]["code"] == "request_validation_failed"
@@ -84,11 +94,13 @@ def test_input_validation_errors_are_422(client):
 
 
 def test_oversized_payload_rejected(client):
+    """Check that oversized payload rejected."""
     huge = load_sample("heart") | {"educational_content": "a" * 600_000}
     assert client.post("/api/topics", json=huge, headers=h("author")).status_code == 413
 
 
 def test_source_over_configured_limit_rejected(tmp_path, mock):
+    """Check that source over configured limit rejected."""
     app = create_app(make_settings(tmp_path, max_source_chars=100), provider_factory=lambda: mock)
     with TestClient(app) as c:
         r = c.post("/api/topics", json=load_sample("heart"), headers=h("author"))
@@ -96,6 +108,7 @@ def test_source_over_configured_limit_rejected(tmp_path, mock):
 
 
 def test_role_authorization(client):
+    """Check that role authorization."""
     tid = create_topic(client)
     for who in ("reviewer",):  # reviewers cannot author content
         assert client.post("/api/topics", json=load_sample("brain"), headers=h(who)).status_code == 403
@@ -109,6 +122,7 @@ def test_role_authorization(client):
 
 
 def test_not_found(client):
+    """Check that not found."""
     assert client.get("/api/topics/999", headers=h("author")).status_code == 404
     assert client.get("/api/raps/999", headers=h("author")).status_code == 404
 
@@ -116,6 +130,7 @@ def test_not_found(client):
 # --- full workflow ------------------------------------------------------------------------------
 
 def test_full_review_workflow_single_reviewer_approval(client, tmp_path):
+    """Check that full review workflow single reviewer approval."""
     tid = ready_topic(client)
     rap = generate(client, tid)
     rid = rap["id"]
@@ -142,6 +157,7 @@ def test_full_review_workflow_single_reviewer_approval(client, tmp_path):
 
 
 def test_cannot_approve_rap_with_failing_validation(client, mock):
+    """Check that cannot approve rap with failing validation."""
     tid = ready_topic(client)
     mock.queue("rap_generation", rap_json())
     rap = generate(client, tid, auto_revise=False)
@@ -153,6 +169,7 @@ def test_cannot_approve_rap_with_failing_validation(client, mock):
 
 
 def test_validate_evaluate_revise_endpoints(client, mock):
+    """Check that validate evaluate revise endpoints."""
     tid = ready_topic(client)
     mock.queue("rap_generation", rap_json())
     rap = generate(client, tid, run_pipeline=False)
@@ -170,6 +187,7 @@ def test_validate_evaluate_revise_endpoints(client, mock):
 
 
 def test_reviewer_revision_creates_new_version_needing_approval(client):
+    """Check that reviewer revision creates new version needing approval."""
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
     r = review(client, rid, "reviewer", "request_revision", feedback="Line too long for 4-year-olds",
@@ -184,6 +202,7 @@ def test_reviewer_revision_creates_new_version_needing_approval(client):
 
 
 def test_revision_request_without_line_issues_cannot_auto_revise(client):
+    """Check that revision request without line issues cannot auto revise."""
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
     review(client, rid, "reviewer", "request_revision", feedback="Make it funnier overall")
@@ -192,6 +211,7 @@ def test_revision_request_without_line_issues_cannot_auto_revise(client):
 
 
 def test_critical_reviewer_comment_blocks_approval(client):
+    """Check that critical reviewer comment blocks approval."""
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
     c = review(client, rid, "reviewer", "comment", issues=[{"line_id": "v1_l01", "severity": "critical",
@@ -202,6 +222,7 @@ def test_critical_reviewer_comment_blocks_approval(client):
 
 
 def test_reject_is_terminal(client):
+    """Check that reject is terminal."""
     tid = ready_topic(client)
     rid = generate(client, tid)["id"]
     assert review(client, rid, "reviewer", "reject", feedback="Off-topic").json()["rap"]["status"] == "rejected"
@@ -210,12 +231,14 @@ def test_reject_is_terminal(client):
 
 
 def test_generate_without_approved_facts_conflict(client):
+    """Check that generate without approved facts conflict."""
     tid = create_topic(client)
     r = client.post("/api/raps/generate", json={"topic_id": tid}, headers=h("author"))
     assert r.status_code == 409 and "approved facts" in r.json()["error"]["message"]
 
 
 def test_list_filters(client):
+    """Check that list filters."""
     tid = ready_topic(client)
     generate(client, tid)
     assert len(client.get("/api/raps", params={"status": "pending_review"}, headers=h("author")).json()) == 1
@@ -225,6 +248,7 @@ def test_list_filters(client):
 
 
 def test_llm_failures_return_safe_errors(client, mock):
+    """Check that llm failures return safe errors."""
     tid = ready_topic(client)
     mock.queue("age_simplification", LLMAuthenticationError("sk-ant-secret-key-should-not-leak"))
     mock.queue("rap_generation", LLMAuthenticationError("sk-ant-secret-key-should-not-leak"))
@@ -235,6 +259,7 @@ def test_llm_failures_return_safe_errors(client, mock):
 
 
 def test_malformed_generation_output_maps_to_502(client, mock):
+    """Check that malformed generation output maps to 502."""
     tid = ready_topic(client)
     mock.queue("rap_generation", *["garbage"] * 3)
     r = client.post("/api/raps/generate", json={"topic_id": tid}, headers=h("author"))

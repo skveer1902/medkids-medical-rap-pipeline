@@ -26,9 +26,12 @@
   };
 
   // ---------- helpers ----------
+  // Find the first element matching a CSS selector.
   const $ = (sel, root = document) => root.querySelector(sel);
+  // Find all elements matching a CSS selector, as an array.
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // Create an element with attributes and children (text is set safely with textContent).
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
@@ -44,13 +47,18 @@
     }
     return node;
   }
+  // Make a coloured status label.
   const badge = (status, extra = "") => el("span", { class: `badge ${status} ${extra}`, text: STATUS_TEXT[status] || status });
+  // Show an ISO date in the viewer's local time.
   const fmtTime = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
 
+  // Save a value in the browser's localStorage (ignored if storage is blocked).
   function store(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ } }
+  // Read a value from localStorage, or return the fallback.
   function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
 
   let toastTimer;
+  // Show a short message at the bottom of the screen.
   function toast(msg, isError = false) {
     const t = $("#toast");
     t.textContent = msg;
@@ -60,6 +68,7 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), isError ? 7000 : 3500);
   }
 
+  // Disable a button and show a spinner while an async action runs.
   async function busy(button, fn) {
     if (button) { button.disabled = true; button.classList.add("busy"); }
     try { return await fn(); }
@@ -71,6 +80,7 @@
     constructor(message, status, details) { super(message); this.status = status; this.details = details || {}; }
   }
 
+  // Call the server's REST API with the right user header and handle errors.
   async function api(method, path, body) {
     const key = state.keys[state.role];
     const headers = { Accept: "application/json" };
@@ -97,6 +107,7 @@
   }
 
   // ---------- session ----------
+  // Ask the server who we are and what we may do; update the header.
   async function refreshMe() {
     const who = $("#whoami");
     if (!state.local && !state.keys[state.role]) {
@@ -118,22 +129,26 @@
     applyRoleVisibility();
   }
 
+  // Return true if the current role is allowed to do something.
   function can(role) {
     const r = state.me ? state.me.role : null;
     if (role === "author") return r === "author" || r === "admin";
     return r === role;
   }
 
+  // Show or hide controls depending on the current role.
   function applyRoleVisibility() {
     $$("[data-needs]").forEach((node) => node.classList.toggle("hidden", !can(node.dataset.needs)));
   }
 
+  // Open the API-key dialog (only used outside local mode).
   function openKeys() {
     for (const role of Object.keys(ROLES)) $(`#key-${role}`).value = state.keys[role] || "";
     $("#keys-dialog").showModal();
   }
 
   // ---------- navigation ----------
+  // Switch to one of the four steps (Topic, Facts, Raps, Review).
   function showStep(step) {
     state.step = step;
     $$(".step").forEach((b) => {
@@ -146,6 +161,7 @@
   }
 
   // ---------- topics ----------
+  // Fetch the topic list and fill the topic picker.
   async function loadTopics(selectId) {
     if (!state.me) { renderTopicSelect(); renderTopic(); return; }
     try { state.topics = await api("GET", "/api/topics"); }
@@ -156,6 +172,7 @@
     await loadTopic();
   }
 
+  // Redraw the topic picker.
   function renderTopicSelect() {
     const sel = $("#topic-select");
     sel.replaceChildren();
@@ -166,6 +183,7 @@
     if (state.topicId) sel.value = String(state.topicId);
   }
 
+  // Fetch the selected topic with its facts.
   async function loadTopic() {
     store("medkids.topic", state.topicId);
     if (!state.topicId) { state.topic = null; renderTopic(); renderFacts(); state.raps = []; renderRaps(); return; }
@@ -176,6 +194,7 @@
     await loadRaps();
   }
 
+  // Draw the topic details panel.
   function renderTopic() {
     const view = $("#topic-view");
     view.replaceChildren();
@@ -213,6 +232,7 @@
     view.append(el("div", { class: "topic-summary" }, left, right));
   }
 
+  // Open the new-topic form and load the sample topics.
   async function openTopicForm() {
     $("#topic-form").classList.remove("hidden");
     $("#topic-view").classList.add("hidden");
@@ -224,11 +244,13 @@
     box.replaceChildren(...state.samples.map((s) => el("button", { class: "chip", type: "button", text: s.topic, onclick: () => fillTopicForm(s) })));
   }
 
+  // Close the new-topic form.
   function closeTopicForm() {
     $("#topic-form").classList.add("hidden");
     $("#topic-view").classList.remove("hidden");
   }
 
+  // Fill the new-topic form from a sample topic.
   function fillTopicForm(s) {
     const f = $("#topic-form");
     f.topic.value = s.topic;
@@ -244,6 +266,7 @@
     f.dataset.sample = s.topic;
   }
 
+  // Send the new-topic form to the server.
   async function submitTopic(ev) {
     ev.preventDefault();
     const f = ev.target;
@@ -276,6 +299,7 @@
   }
 
   // ---------- facts ----------
+  // Draw the list of proposed and approved facts.
   function renderFacts() {
     const list = $("#facts-list");
     list.replaceChildren();
@@ -306,6 +330,7 @@
     $("#fact-review-bar").classList.toggle("hidden", !reviewer || !t.facts.some((f) => f.status === "candidate" || f.status === "approved"));
   }
 
+  // Ask the server to pull facts from the topic's source text.
   async function extractFacts(btn) {
     if (!state.topic) return;
     await busy(btn, async () => {
@@ -315,6 +340,7 @@
     });
   }
 
+  // Approve or reject the ticked facts.
   async function reviewFacts(btn, approve) {
     const ids = $$("#facts-list input[type=checkbox]:checked").map((c) => c.value);
     if (!ids.length) { toast("Select at least one fact first.", true); return; }
@@ -330,6 +356,7 @@
   }
 
   // ---------- raps ----------
+  // Fetch every song from every topic.
   async function loadRaps() {
     if (!state.me) { state.raps = []; renderRaps(); return; }
     try {
@@ -342,6 +369,7 @@
     else { state.rapId = null; renderRapDetail(); }
   }
 
+  // Draw the song list, highlighting the current topic.
   function renderRaps() {
     const list = $("#rap-list");
     list.replaceChildren();
@@ -365,6 +393,7 @@
     }
   }
 
+  // Ask the server to write new songs for the topic.
   async function generate(ev) {
     ev.preventDefault();
     if (!state.topic) { toast("Choose a topic first.", true); return; }
@@ -390,6 +419,7 @@
   }
 
   // ---------- rap detail ----------
+  // Open one song (switching to its topic) and load its history.
   async function openRap(id, jump = true) {
     try {
       const [rap, history] = await Promise.all([api("GET", `/api/raps/${id}`), api("GET", `/api/raps/${id}/history`)]);
@@ -409,6 +439,7 @@
     if (jump) showStep("review");
   }
 
+  // Work out which lyric lines were flagged by the checks and why.
   function lineMarks(rap) {
     const marks = {};
     const rank = { ok: 1, review: 2, bad: 3 };
@@ -430,6 +461,7 @@
     return marks;
   }
 
+  // Draw the open song: lyrics, flags, score and actions.
   function renderRapDetail() {
     const rap = state.rap && state.rap.id === state.rapId ? state.rap : null;
     $("#rap-empty").classList.toggle("hidden", !!rap);
@@ -473,6 +505,7 @@
     renderChecks(rap);
   }
 
+  // Select or unselect a lyric line for reviewer feedback.
   function toggleLine(id) {
     if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
     $$(`#lyrics [data-line="${CSS.escape(id)}"]`).forEach((b) => {
@@ -482,6 +515,7 @@
     renderReviewBox(state.rap);
   }
 
+  // Draw the medical, safety and score results.
   function renderChecks(rap) {
     // Gates
     const ev = rap.evaluation;
@@ -543,11 +577,13 @@
     renderHistory();
   }
 
+  // Scroll to and highlight a lyric line.
   function focusLine(id) {
     const b = $(`#lyrics [data-line="${CSS.escape(id)}"]`);
     if (b) { b.scrollIntoView({ block: "center", behavior: "smooth" }); b.focus(); }
   }
 
+  // Draw the reviewer's approve / request changes / reject box.
   function renderReviewBox(rap) {
     const box = $("#review-box");
     box.replaceChildren(el("p", { class: "box-title", text: "Human review" }));
@@ -613,6 +649,7 @@
     if (!pending) box.append(el("p", { class: "note-small", text: "Approve and request changes are available once the rap is waiting for review." }));
   }
 
+  // Draw the buttons for re-checking, fixing and downloading a song.
   function renderRapActions(rap) {
     const box = $("#rap-actions");
     box.replaceChildren();
@@ -645,6 +682,7 @@
     }
   }
 
+  // Draw the song's history of versions and decisions.
   function renderHistory() {
     const box = $("#history-box > div");
     box.replaceChildren();
@@ -660,6 +698,7 @@
   }
 
   // ---------- wiring ----------
+  // Start the app: check the server, set up events and load data.
   async function init() {
     try { const h = await (await fetch("/api/health")).json(); state.local = !!h.local_mode; } catch { /* server not reachable yet */ }
     if (state.local) $("#keys-btn").classList.add("hidden");

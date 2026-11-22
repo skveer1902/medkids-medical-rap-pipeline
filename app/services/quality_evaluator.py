@@ -33,6 +33,7 @@ COVERAGE_MATCH_MIN = 0.6
 
 
 def score_medical(report: MedicalAccuracyReport) -> CriterionScore:
+    """Score medical accuracy from the share of supported claims."""
     claims = report.claims
     if not claims:
         return CriterionScore(score=50.0, weight=0, explanation="No factual claims detected; nothing verified.")
@@ -49,6 +50,7 @@ def score_medical(report: MedicalAccuracyReport) -> CriterionScore:
 
 
 def objective_coverage(lyrics: Lyrics, objectives: list[dict[str, str]]) -> dict[str, bool]:
+    """Check which learning goals the lyrics cover."""
     lines = [ln.text for ln in lyrics.all_lines()]
     windows = lines + [f"{a} {b}" for a, b in zip(lines, lines[1:], strict=False)]
     covered: dict[str, bool] = {}
@@ -60,6 +62,7 @@ def objective_coverage(lyrics: Lyrics, objectives: list[dict[str, str]]) -> dict
 
 
 def score_coverage(lyrics: Lyrics, objectives: list[dict[str, str]], declared: list[str]) -> CriterionScore:
+    """Score how many learning goals the song covers."""
     if not objectives:
         return CriterionScore(score=0.0, weight=0, explanation="Topic has no learning objectives.")
     cov = objective_coverage(lyrics, objectives)
@@ -72,6 +75,7 @@ def score_coverage(lyrics: Lyrics, objectives: list[dict[str, str]], declared: l
 
 
 def score_age(lyrics: Lyrics, band: str, safety: SafetyReport) -> CriterionScore:
+    """Score age fit from line length and safety findings."""
     profile = get_profile(band)
     lines = lyrics.all_lines()
     lengths = [len(words(ln.text)) for ln in lines]
@@ -88,6 +92,7 @@ def score_age(lyrics: Lyrics, band: str, safety: SafetyReport) -> CriterionScore
 
 
 def score_rhyme_rhythm(lyrics: Lyrics) -> CriterionScore:
+    """Score rhyme and steady rhythm across lines."""
     rhymed = total = 0
     cvs: list[float] = []
     for s in lyrics.sections:
@@ -111,6 +116,7 @@ def score_rhyme_rhythm(lyrics: Lyrics) -> CriterionScore:
 
 
 def score_memorability(lyrics: Lyrics, topic: str) -> CriterionScore:
+    """Score the chorus: repetition, topic name and catchiness."""
     chorus = next((s for s in lyrics.sections if s.section == "chorus"), None)
     if chorus is None:
         return CriterionScore(score=0.0, weight=0, explanation="No chorus.")
@@ -134,6 +140,7 @@ def score_memorability(lyrics: Lyrics, topic: str) -> CriterionScore:
 
 def recommendations(scores: dict[str, CriterionScore], medical: MedicalAccuracyReport,
                     safety: SafetyReport, coverage: dict[str, bool]) -> list[str]:
+    """Write plain suggestions for improving the song."""
     recs: list[str] = []
     if medical.failing_line_ids:
         recs.append(f"Fix medically inaccurate/unsupported lines: {medical.failing_line_ids}.")
@@ -166,6 +173,7 @@ def evaluate(
     weights: dict[str, float],
     threshold: float,
 ) -> EvaluationReport:
+    """Combine the five weighted scores and the must-pass gates into one report."""
     scores = {
         "medical_accuracy": score_medical(medical),
         "educational_coverage": score_coverage(lyrics, objectives, declared_objectives),
@@ -175,10 +183,12 @@ def evaluate(
     }
     for k, s in scores.items():
         s.weight = weights[k]
+    # Weighted total out of 100 (30/25/20/15/10 by default).
     total = round(sum(s.score * s.weight for s in scores.values()), 1)
 
     names = {s.section for s in lyrics.sections}
     required = {f"verse_{n}" for n in range(1, num_verses + 1)} | {"chorus"}
+    # Must-pass checks: a high score cannot make up for failing one of these.
     gates = {
         "medical_accuracy_not_failed": medical.status != "failed",
         "child_safety_not_failed": safety.status != "failed",

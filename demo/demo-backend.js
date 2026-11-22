@@ -4,7 +4,7 @@
  * can be explored anywhere. It is a JavaScript port of the pipeline's OFFLINE MOCK mode:
  * the deterministic mock "AI" plus the deterministic rules the Python services apply
  * (evidence grounding, misconception rules, child-safety rules, scoring, capped targeted
- * revision and the two-reviewer approval gate). Nothing is sent anywhere; data lives in
+ * revision and the single-reviewer approval gate). Nothing is sent anywhere; data lives in
  * memory and resets when the page reloads. Real Claude generation needs the Python app.
  */
 (() => {
@@ -30,9 +30,13 @@
   class HttpError extends Error {
     constructor(status, code, message, details) { super(message); this.status = status; this.code = code; this.details = details || {}; }
   }
+  // Make a 404 error.
   const notFound = (m) => new HttpError(404, "not_found", m);
+  // Make a 409 workflow error.
   const conflict = (m, d) => new HttpError(409, "invalid_workflow_transition", m, d);
+  // Make a 422 input error.
   const rejected = (m, d) => new HttpError(422, "input_rejected", m, d);
+  // Make a 403 permission error.
   const forbidden = (m) => new HttpError(403, "forbidden", m);
 
   // ------------------------------------------------------------------ text utils
@@ -43,7 +47,9 @@
     yourself let lets yeah yo hey oh go come get got gonna wanna all every everyone everybody one way thing things keep keeps
     make makes made like say says said know see look day each also us im youre thats understand identify why matters matter
     about part helps help`.split(/\s+/));
+  // Split text into lower-case words.
   const words = (t) => (String(t).toLowerCase().replace(/’/g, "'").match(/[a-z]+(?:'[a-z]+)?/g) || []);
+  // Cut common word endings so similar words match.
   function stem(w) {
     w = w.toLowerCase().replace("'s", "");
     for (const suf of ["ing", "ies", "ied", "es", "ed", "ly", "s"]) {
@@ -54,32 +60,48 @@
     }
     return w;
   }
+  // Return the stemmed meaningful words in text.
   const contentWords = (t) => new Set(words(t).filter((w) => !STOPWORDS.has(w) && w.length > 2).map(stem));
+  // Return how much of a claim's wording appears in a reference text (0-1).
   function overlap(claim, ref) {
     const a = contentWords(claim); if (!a.size) return 0;
     const b = contentWords(ref); let n = 0; for (const w of a) if (b.has(w)) n++; return n / a.size;
   }
+  // Split text into sentences.
   const splitSentences = (t) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter((s) => s.length > 2);
+  // Lower-case text and strip punctuation for comparing.
   const norm = (t) => String(t).normalize("NFKC").toLowerCase().replace(/[‘’]/g, "'").replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+  // Clean source text: remove control characters and extra spaces.
   const normalizeText = (t) => String(t).normalize("NFKC").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  // Turn a title into a URL-safe slug.
   const slugify = (t) => (t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "topic");
+  // Roughly count the syllables in a word.
   function syllables(word) {
     let w = word.toLowerCase().replace(/[^a-z]/g, ""); if (!w) return 0; if (w.length <= 3) return 1;
     w = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "");
     return Math.max(1, (w.match(/[aeiouy]{1,2}/g) || []).length);
   }
+  // Roughly count the syllables in a line.
   const lineSyllables = (t) => words(t).reduce((n, w) => n + syllables(w), 0);
+  // Return the last word of a line.
   const lastWord = (t) => { const ws = words(t); return ws.length ? ws[ws.length - 1] : ""; };
+  // Return the ending sound used to test rhymes.
   const rhymeKey = (w) => { w = w.replace(/[^a-z]/g, ""); const m = w.match(/[aeiouy]+[^aeiouy]*$/); return m ? m[0] : w; };
+  // Return true if two words rhyme (roughly).
   function rhymes(a, b) {
     if (!a || !b) return false; if (a === b) return true;
     const ka = rhymeKey(a), kb = rhymeKey(b); if (ka && ka === kb) return true;
     return a.length >= 3 && b.length >= 3 && a.slice(-3) === b.slice(-3);
   }
+  // Average of a list of numbers.
   const mean = (xs) => xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+  // Standard deviation of a list of numbers.
   const pstdev = (xs) => { const m = mean(xs); return Math.sqrt(mean(xs.map((x) => (x - m) ** 2))); };
+  // Current time as an ISO string.
   const now = () => new Date().toISOString();
+  // Random hex ID.
   const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  // Deep-copy a plain object.
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   // ------------------------------------------------------------------ lexicon
@@ -97,6 +119,7 @@
   const INTERMEDIATE_JARGON = new Set(`artery arteries vein veins capillary capillaries circulatory circulation neuron neurons
     nervous spinal oxygen nutrients nutrient cells organ organs vessels`.split(/\s+/));
   const CLAIM_VERBS = "is|are|was|has|have|helps?|makes?|does|do|can|works?|pumps?|keeps?|controls?|sends?|gets?|carries|carry|moves?|tells?|needs?|beats?|thinks?|stores?|cleans?|filters?|produces?|creates?|'s";
+  // Return true if a line states a body fact (not just a filler line).
   function isMedicalStatement(text, topic) {
     const topicStems = new Set(topic ? words(topic).map(stem) : []);
     const terms = new Set(words(text).map(stem).filter((w) => MEDICAL_TERMS.has(w)));
@@ -115,6 +138,7 @@
     /\bapprove\b.{0,30}\b(this|these|all|every)\b/i, /^\s*(system|assistant|user)\s*:/i,
     /<\/?\s*(system|instructions?|untrusted_[a-z_]+)\s*>/i, /<\s*script\b/i,
   ];
+  // Return true if text looks like an instruction aimed at the AI.
   const looksLikeInjection = (t) => INJECTION.some((p) => p.test(t));
 
   const GLOBAL_MISCONCEPTIONS = [
@@ -125,6 +149,7 @@
     ["The brain is a muscle", /\bbrain\b\s*(is|'s)\s+(a\s+)?muscle\b/i],
   ];
 
+  // Make a case-insensitive regex.
   const r = (p) => new RegExp(p, "i");
   const SAFETY_RULES = [
     ["graphic_medical", "critical", r("\\b(gore|gory|guts|spurt\\w*|gush\\w*|squirt\\w*|bleed(s|ing)?\\s+out|blood\\s*bath|bloody|mangled|splatter\\w*|severed|rip\\w*\\s+(it\\s+|you\\s+|them\\s+)?(out|open|apart)|cut\\s+(you\\s+|it\\s+|them\\s+)?open|chop\\w*\\s+(off|up))\\b"), "Graphic or gory description of the body.", "Describe what the body does, not injuries.", false],
@@ -153,14 +178,21 @@
 
   // ------------------------------------------------------------------ store
   const db = { topics: [], raps: [], nextTopic: 1, nextRap: 1, nextReview: 1 };
+  // Find a topic by ID or throw 404.
   const getTopic = (id) => { const t = db.topics.find((x) => x.id === Number(id)); if (!t) throw notFound(`topic ${id} not found`); return t; };
+  // Find a rap by ID or throw 404.
   const getRap = (id) => { const x = db.raps.find((y) => y.id === Number(id)); if (!x) throw notFound(`rap ${id} not found`); return x; };
+  // Return a topic's approved facts.
   const approvedFacts = (t) => t.facts.filter((f) => f.status === "approved");
+  // Return a rap's current version.
   const currentVersion = (rap) => rap.versions.find((v) => v.version_number === rap.current_version);
+  // Return the newest medical or safety report for a version.
   const latest = (v, kind) => [...v.validations].reverse().find((x) => x.kind === kind) || null;
+  // Return every lyric line.
   const allLines = (ly) => ly.sections.flatMap((s) => s.lines);
 
   // ------------------------------------------------------------------ topics & facts
+  // Create a topic from the form data.
   function createTopic(body, who) {
     const name = String(body.topic || "").trim();
     const errors = [];
@@ -194,9 +226,12 @@
     db.topics.push(t);
     return t;
   }
+  // Make the next unused fact ID.
   const nextFactKey = (t) => { let n = t.facts.length + 1; while (t.facts.some((f) => f.fact_key === `${t.slug}_fact_${String(n).padStart(3, "0")}`)) n++; return `${t.slug}_fact_${String(n).padStart(3, "0")}`; };
+  // Compile the topic's forbidden-claim patterns.
   const forbiddenPatterns = (t) => t.forbidden_claims.filter((c) => c.pattern).map((c) => { try { return new RegExp(c.pattern, "i"); } catch { return null; } }).filter(Boolean);
 
+  // Turn each source sentence into a proposed fact that quotes it.
   function extractFacts(t) {
     const src = t.sources[0];
     const seen = new Set(t.facts.map((f) => norm(f.text)));
@@ -219,6 +254,7 @@
     return created;
   }
 
+  // Approve, reject or add facts as the reviewer.
   function reviewFacts(t, body, who) {
     if (who.role !== "reviewer") throw forbidden("only a reviewer can approve or reject medical facts");
     const approve = body.approve_fact_ids || [], reject = body.reject_fact_ids || [];
@@ -239,16 +275,20 @@
     "Sing it with me, one, two, three!", "Throw your hands up high, oh my!", "Spin around and shout it out!",
     "Hey hey, that's the way!", "Give a cheer, the facts are here!"];
   const SWAPS = { approximately: "about", continuously: "nonstop", throughout: "through", receives: "gets", processes: "works on", information: "messages" };
+  // Pick a filler line that rhymes with the given line.
   function tagFor(line, used) {
     const lw = lastWord(line);
     for (const t of TAGS) if (!used.has(t) && rhymes(lw, lastWord(t))) { used.add(t); return t; }
     for (const t of TAGS) if (!used.has(t)) { used.add(t); return t; }
     return "Clap along and sing with me!";
   }
+  // Turn a fact into a lyric line.
   const factLine = (f) => { const t = (f.simplified || f.text).replace(/\.$/, ""); return t[0].toUpperCase() + t.slice(1) + "!"; };
+  // A deliberate wrong line used to show the fix loop.
   const injectedMistake = (topic) => /heart/i.test(topic) ? "The heart makes blood all day!"
     : /brain/i.test(topic) ? "We only use ten percent of our brain!" : "Sing this song and you will never get sick!";
 
+  // Write a song from approved facts (the offline 'AI').
   function writeLyrics(t, req, band) {
     const facts = approvedFacts(t).map((f) => {
       let s = f.text; if (band === "4-6") for (const [a, b] of Object.entries(SWAPS)) s = s.replaceAll(a, b);
@@ -282,6 +322,7 @@
   }
 
   // ------------------------------------------------------------------ validation
+  // Check every line against approved facts and misconceptions.
   function medicalCheck(t, lyrics, factKeys) {
     const facts = Object.fromEntries(approvedFacts(t).filter((f) => factKeys.includes(f.fact_key)).map((f) => [f.fact_key, f.text]));
     const rules = [...GLOBAL_MISCONCEPTIONS, ...t.forbidden_claims.filter((c) => c.pattern).map((c) => { try { return [c.claim, new RegExp(c.pattern, "i")]; } catch { return null; } }).filter(Boolean)];
@@ -310,6 +351,7 @@
       automated_triage_available: true, disclaimer: "Automated claim checking is triage only. It is not an independent medical authority; a human medical reviewer must sign off." };
   }
 
+  // Flag unsafe, scary or too-hard lines for the age band.
   function safetyCheck(t, lyrics, band) {
     const findings = [];
     const profile = AGE[band];
@@ -333,6 +375,7 @@
       failing_line_ids: [...new Set(blocking.map((f) => f.line_id).filter(Boolean))].sort(), llm_review_available: true };
   }
 
+  // Score a song (five weighted criteria) and apply the must-pass checks.
   function evaluate(t, rap, v, med, saf) {
     const lyrics = v.lyrics, lines = allLines(lyrics);
     const objectives = t.objectives.map((o) => ({ id: o.objective_key, text: o.text }));
@@ -394,6 +437,7 @@
   // ------------------------------------------------------------------ workflow
   const ALLOWED = { draft: ["pending_review", "validation_failed", "rejected"], validation_failed: ["draft", "rejected"],
     pending_review: ["approved", "rejected", "revision_requested", "validation_failed"], revision_requested: ["draft", "rejected"], approved: [], rejected: [] };
+  // Move a rap to a new status if allowed and log it.
   function transition(rap, to, actor, reason) {
     if (rap.status === to) return;
     if (!ALLOWED[rap.status].includes(to)) throw conflict(`cannot move rap ${rap.id} from '${rap.status}' to '${to}'`);
@@ -401,6 +445,7 @@
     rap.status = to; rap.updated_at = now();
   }
 
+  // Run medical and safety checks on the current version.
   function validate(rap) {
     if (!["draft", "validation_failed", "pending_review"].includes(rap.status)) throw conflict(`cannot validate a rap in status '${rap.status}'`);
     const t = getTopic(rap.topic_id), v = currentVersion(rap);
@@ -411,6 +456,7 @@
     else if (rap.status === "validation_failed") transition(rap, "draft", "system:pipeline", "re-validation passed");
     return [med, saf];
   }
+  // Score the current version and set the next status.
   function evaluateRap(rap) {
     if (!["draft", "validation_failed", "pending_review"].includes(rap.status)) throw conflict(`cannot evaluate a rap in status '${rap.status}'`);
     const v = currentVersion(rap), med = latest(v, "medical"), saf = latest(v, "safety");
@@ -425,6 +471,7 @@
     return ev;
   }
 
+  // Gather flagged lines and reasons from checks and the reviewer.
   function collectProblems(v, reviewerIssues) {
     const problems = {};
     const add = (id, why) => { if (id) (problems[id] = problems[id] || []).push(why); };
@@ -435,6 +482,7 @@
     return problems;
   }
 
+  // Rewrite only the flagged lines as a new version.
   function revise(rap, actor, autoValidate) {
     const v = currentVersion(rap); let changeType, problems;
     if (rap.status === "revision_requested") {
@@ -469,6 +517,7 @@
     return true;
   }
 
+  // Validate and score; optionally auto-fix up to the revision limit.
   function runChecks(rap, autoRevise) {
     validate(rap); evaluateRap(rap);
     while (autoRevise && rap.status === "validation_failed") {
@@ -479,6 +528,7 @@
     }
   }
 
+  // Create new raps for a topic and check them.
   function generate(body, who) {
     const t = getTopic(body.topic_id);
     if (!approvedFacts(t).length) throw conflict("topic has no approved facts; extract candidates and have a medical reviewer approve them first");
@@ -506,11 +556,13 @@
   }
 
   // ------------------------------------------------------------------ review
+  // Return the approvals recorded for the current version.
   function approvalsNow(rap) {
     const out = {};
     for (const x of rap.reviews) if (x.rap_version_number === rap.current_version && x.decision === "approve" && !out[x.reviewer_role]) out[x.reviewer_role] = x.reviewer_name;
     return out;
   }
+  // List the reasons a rap cannot be approved yet.
   function blockers(rap) {
     const b = [];
     if (rap.status !== "pending_review") return [`rap is '${rap.status}', not 'pending_review'`];
@@ -525,6 +577,7 @@
       b.push("a reviewer raised critical issues on this version; request a revision first");
     return b;
   }
+  // Record the reviewer's decision.
   function review(rap, body, who) {
     if (!PERMISSIONS.review.includes(who.role)) throw forbidden("only a reviewer can review raps");
     const d = body.decision;
@@ -549,8 +602,11 @@
   }
 
   // ------------------------------------------------------------------ presenters
+  // Short API view of a topic.
   const topicSummary = (t) => ({ id: t.id, slug: t.slug, title: t.title, category: t.category, target_age_min: t.target_age_min, target_age_max: t.target_age_max, is_demo_data: t.is_demo_data, created_at: t.created_at });
+  // Short API view of a rap.
   const rapSummary = (x) => ({ id: x.id, topic_id: x.topic_id, status: x.status, age_band: x.age_band, style: x.style, current_version: x.current_version, needs_human_intervention: x.needs_human_intervention, created_at: x.created_at, updated_at: x.updated_at });
+  // Full API view of a rap.
   function rapDetail(x) {
     const v = currentVersion(x), med = latest(v, "medical"), saf = latest(v, "safety");
     return { ...rapSummary(x), title: v.title, lyrics: v.lyrics, objectives_covered: v.objectives_covered,
@@ -559,6 +615,7 @@
       reviews: x.reviews, approvals_for_current_version: Object.keys(approvalsNow(x)).sort(), approvals_required: REQUIRED_APPROVERS,
       auto_revision_attempts: x.auto_revision_attempts, is_demo_data: getTopic(x.topic_id).is_demo_data };
   }
+  // Full history of a rap.
   const history = (x) => ({ rap_id: x.id, status: x.status,
     versions: x.versions.map(({ validations, evaluations, ...rest }) => rest), events: x.events, reviews: x.reviews,
     validations: x.versions.flatMap((v) => v.validations.map((val) => ({ version: v.version_number, ...val }))),
@@ -594,6 +651,7 @@
   })();
 
   // ------------------------------------------------------------------ router
+  // Send an /api call to the matching handler, like the real server.
   function route(method, path, query, body, who) {
     const need = (perm) => { if (!PERMISSIONS[perm].includes(who.role)) throw forbidden(`role '${who.role}' is not allowed to perform '${perm}' actions`); };
     let m;

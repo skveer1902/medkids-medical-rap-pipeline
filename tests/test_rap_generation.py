@@ -13,6 +13,7 @@ from tests.test_prompts_and_age import spec
 
 
 def good_output(**over) -> str:
+    """Return valid rap JSON, with optional overrides."""
     out = {
         "title": "Pump It Up",
         "sections": [
@@ -34,10 +35,12 @@ def good_output(**over) -> str:
 
 
 def gen(mock, attempts=3):
+    """Build a RapGenerator around the mock provider."""
     return RapGenerator(mock, temperature=0.7, max_tokens=1500, json_max_attempts=attempts)
 
 
 def test_mock_generation_has_required_structure(mock):
+    """Check that mock generation has required structure."""
     rap = gen(mock).generate(spec())
     names = [s.section for s in rap.lyrics.sections]
     assert names == ["verse_1", "chorus", "verse_2", "outro"]
@@ -49,6 +52,7 @@ def test_mock_generation_has_required_structure(mock):
 
 
 def test_unapproved_fact_ids_and_unknown_objectives_are_dropped(mock):
+    """Check that unapproved fact ids and unknown objectives are dropped."""
     mock.queue("rap_generation", good_output())
     rap = gen(mock).generate(spec())
     chorus = rap.lyrics.sections[1]
@@ -58,6 +62,7 @@ def test_unapproved_fact_ids_and_unknown_objectives_are_dropped(mock):
 
 
 def test_malformed_json_is_retried_then_succeeds(mock):
+    """Check that malformed json is retried then succeeds."""
     mock.queue("rap_generation", "Sure! Here are your lyrics: ...", '{"title": "x"}', good_output())
     rap = gen(mock).generate(spec())
     assert rap.generation_config["json_attempts_used"] == 3
@@ -66,11 +71,13 @@ def test_malformed_json_is_retried_then_succeeds(mock):
 
 
 def test_fenced_json_is_accepted(mock):
+    """Check that fenced json is accepted."""
     mock.queue("rap_generation", "```json\n" + good_output() + "\n```")
     assert gen(mock).generate(spec()).lyrics.title == "Pump It Up"
 
 
 def test_persistent_malformed_output_raises_after_limit(mock):
+    """Check that persistent malformed output raises after limit."""
     mock.queue("rap_generation", *["{bad json"] * 5)
     with pytest.raises(LLMOutputValidationError):
         gen(mock, attempts=2).generate(spec())
@@ -78,6 +85,7 @@ def test_persistent_malformed_output_raises_after_limit(mock):
 
 
 def test_structural_problems_trigger_retry(mock):
+    """Check that structural problems trigger retry."""
     no_verse2 = json.loads(good_output())
     no_verse2["sections"] = [s for s in no_verse2["sections"] if s["section"] != "verse_2"]
     no_topic_chorus = json.loads(good_output())
@@ -93,6 +101,7 @@ def test_structural_problems_trigger_retry(mock):
 
 
 def test_invalid_section_name_rejected_by_schema(mock):
+    """Check that invalid section name rejected by schema."""
     bad = json.loads(good_output())
     bad["sections"][0]["section"] = "bridge"
     mock.queue("rap_generation", *[json.dumps(bad)] * 3)
@@ -101,14 +110,17 @@ def test_invalid_section_name_rejected_by_schema(mock):
 
 
 def test_no_approved_facts_refused(mock):
+    """Check that no approved facts refused."""
     with pytest.raises(LLMOutputValidationError):
         gen(mock).generate(spec(approved_facts=[]))
 
 
 def test_temperature_recorded_as_unsupported_for_claude_like_providers():
+    """Check that temperature recorded as unsupported for claude like providers."""
     class NoTemp(MockProvider):
         @property
         def supports_temperature(self) -> bool:
+            """This fake provider does not take a temperature."""
             return False
 
     p = NoTemp()

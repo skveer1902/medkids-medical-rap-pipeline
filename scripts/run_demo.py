@@ -38,7 +38,7 @@ from scripts.seed_topics import SEED_PRINCIPAL, seed
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Development fixture standing in for a medical reviewer in the DEMO ONLY.
+# Development fixture standing in for the reviewer in the DEMO ONLY.
 # It is not a person and its approvals are recorded under this explicit name.
 DEV_FIXTURE_REVIEWER = Principal(
     name="DEV-FIXTURE (demo only - not a human medical review)",
@@ -48,6 +48,7 @@ DEV_FIXTURE_REVIEWER = Principal(
 
 
 def print_lyrics(lyrics: dict) -> None:
+    """Print a song with the fact each line cites."""
     print(f"\n  \"{lyrics['title']}\"")
     for section in lyrics["sections"]:
         print(f"  [{section['section']}]")
@@ -59,6 +60,7 @@ def print_lyrics(lyrics: dict) -> None:
 
 
 def run(db_path: Path, out_dir: Path) -> list[dict]:
+    """Run the whole pipeline offline on the sample topics and save the results."""
     os.environ.setdefault("LOG_LEVEL", "WARNING")
     settings = settings_from_env().model_copy(update={"database_url": f"sqlite:///{db_path}",
                                                      "outputs_dir": str(out_dir)})
@@ -134,6 +136,7 @@ def run(db_path: Path, out_dir: Path) -> list[dict]:
 
 
 def main() -> None:
+    """Read command-line options and run the demo."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--db", default=str(ROOT / "data" / "demo.db"))
     parser.add_argument("--out", default=str(ROOT / "data" / "outputs"))

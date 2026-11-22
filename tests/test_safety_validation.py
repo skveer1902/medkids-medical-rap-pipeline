@@ -15,6 +15,7 @@ from tests.conftest import lyrics_from
 
 
 def check(mock, line: str, band: str = "4-6", vocab: list[str] | None = None):
+    """Run the safety validator on a song containing the given line."""
     lyrics = lyrics_from({"verse_1": [(line, [])], "chorus": [("Heart! Heart!", [])],
                           "verse_2": [("The heart is a muscle!", ["f1"])]})
     return SafetyValidator(mock).validate(topic="Heart", band=band, lyrics=lyrics, required_vocabulary=vocab or [])
@@ -34,6 +35,7 @@ def check(mock, line: str, band: str = "4-6", vocab: list[str] | None = None):
     ("Fat kids have lazy hearts!", "discriminatory", "critical"),
 ])
 def test_rule_categories(mock, line, category, severity):
+    """Check that rule categories."""
     r = check(mock, line)
     hits = [f for f in r.findings if f.category == category]
     assert hits and hits[0].severity == severity and hits[0].source == "rule"
@@ -41,16 +43,19 @@ def test_rule_categories(mock, line, category, severity):
 
 
 def test_negated_fright_word_is_only_minor(mock):
+    """Check that negated fright word is only minor."""
     r = check(mock, "Don't be scared, it's just a beat!")
     f = next(f for f in r.findings if f.category == "frightening")
     assert f.severity == "minor" and r.status == "requires_review"
 
 
 def test_clean_lyrics_pass(mock):
+    """Check that clean lyrics pass."""
     assert check(mock, "Clap your hands and stomp your feet!").status == "passed"
 
 
 def test_complexity_is_age_band_specific(mock):
+    """Check that complexity is age band specific."""
     young = check(mock, "The myocardium pumps blood!", band="4-6")
     assert any(f.category == "unnecessary_complexity" and f.severity == "major" for f in young.findings)
     older = check(mock, "Arteries carry blood away from the heart!", band="7-10")
@@ -62,6 +67,7 @@ def test_complexity_is_age_band_specific(mock):
 
 
 def test_llm_subjective_findings_are_merged_and_validated(mock):
+    """Check that llm subjective findings are merged and validated."""
     mock.queue("safety_validation", json.dumps({"findings": [
         {"line_id": "v1_l01", "category": "frightening", "severity": "major",
          "explanation": "Implied threat about the heart stopping."},
@@ -73,6 +79,7 @@ def test_llm_subjective_findings_are_merged_and_validated(mock):
 
 
 def test_llm_unavailable_means_requires_review_not_pass(mock):
+    """Check that llm unavailable means requires review not pass."""
     mock.queue("safety_validation", *[LLMTimeoutError("slow")] * 10)
     r = check(mock, "Clap your hands and stomp your feet!")
     assert r.llm_review_available is False and r.status == "requires_review"
@@ -81,6 +88,7 @@ def test_llm_unavailable_means_requires_review_not_pass(mock):
 # --- Stage 7 scoring ---------------------------------------------------------------------------
 
 def reports(status="passed", claims=None):
+    """Build simple medical and safety reports for scoring tests."""
     med = MedicalAccuracyReport(status=status, claims=claims or [
         ClaimResult(line_id="v1_l01", claim="x", status="supported", source_fact_id="f1")],
         failing_line_ids=[], review_line_ids=[], summary={})
@@ -88,6 +96,7 @@ def reports(status="passed", claims=None):
 
 
 def score(lyrics, med, saf, threshold=80.0):
+    """Score lyrics with the given reports."""
     return quality_evaluator.evaluate(
         lyrics=lyrics, topic="Heart", band="4-6",
         objectives=[{"objective_id": "o1", "text": "The heart is a muscle."},
@@ -104,6 +113,7 @@ LYRICS = lyrics_from({
 
 
 def test_scores_weights_and_explanations():
+    """Check that scores weights and explanations."""
     med, saf = reports()
     ev = score(LYRICS, med, saf)
     assert set(ev.scores) == set(DEFAULT_SCORE_WEIGHTS)
@@ -116,6 +126,7 @@ def test_scores_weights_and_explanations():
 
 
 def test_medical_failure_blocks_regardless_of_score():
+    """Check that medical failure blocks regardless of score."""
     claims = [ClaimResult(line_id="v1_l01", claim="x", status="contradicted", source_fact_id=None)]
     med, saf = reports("failed", claims)
     ev = score(LYRICS, med, saf, threshold=0)
@@ -125,6 +136,7 @@ def test_medical_failure_blocks_regardless_of_score():
 
 
 def test_threshold_is_configurable_and_recommendations_given():
+    """Check that threshold is configurable and recommendations given."""
     med, saf = reports()
     weak = lyrics_from({"verse_1": [("Pumpkin", [])], "chorus": [("La", [])], "verse_2": [("Banana", [])]})
     ev = score(weak, med, saf, threshold=99)

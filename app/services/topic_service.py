@@ -15,6 +15,7 @@ from app.utils.text_utils import slugify
 
 
 def create_topic(session: Session, data: TopicCreate, principal: Principal, settings: Settings) -> Topic:
+    """Save a new topic with its cleaned source text, goals and rules."""
     processed = process_source(data.educational_content, max_chars=settings.max_source_chars)
     base = slugify(data.topic)
     slug, n = base, 2
@@ -59,6 +60,7 @@ def create_topic(session: Session, data: TopicCreate, principal: Principal, sett
 
 
 def get_topic(session: Session, topic_id: int) -> Topic:
+    """Load a topic by ID or raise a not-found error."""
     topic = session.get(Topic, topic_id)
     if topic is None:
         raise NotFoundError(f"topic {topic_id} not found")
@@ -66,4 +68,5 @@ def get_topic(session: Session, topic_id: int) -> Topic:
 
 
 def list_topics(session: Session, limit: int = 100, offset: int = 0) -> list[Topic]:
+    """Return topics in ID order, one page at a time."""
     return list(session.scalars(select(Topic).order_by(Topic.id).limit(limit).offset(offset)))

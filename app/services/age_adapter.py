@@ -33,9 +33,11 @@ class AgeProfile:
     flagged_jargon: frozenset[str] = field(default_factory=frozenset)
 
     def guidelines_text(self) -> str:
+        """Return the age guidelines as a bullet list for prompts."""
         return "\n".join(f"- {g}" for g in self.guidelines)
 
     def short_text(self) -> str:
+        """Return a one-line summary of the age rules."""
         return (
             f"at most {self.max_words_per_line} words per line, simple words, "
             f"no unexplained science terms"
@@ -94,6 +96,7 @@ def resolve_age_band(topic_min: int, topic_max: int, requested: AgeBand | None) 
 
 
 def get_profile(band: str) -> AgeProfile:
+    """Return the rules for an age band ('4-6' or '7-10')."""
     return AGE_PROFILES[band]
 
 
@@ -128,6 +131,7 @@ def check_meaning_preserved(
 
 class AgeAdapter:
     def __init__(self, provider: LLMProvider, *, json_max_attempts: int = 3) -> None:
+        """Store the AI provider used to reword facts."""
         self.provider = provider
         self.json_max_attempts = json_max_attempts
 

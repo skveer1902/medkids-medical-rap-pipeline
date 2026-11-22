@@ -38,6 +38,7 @@ class Principal:
 
 
 def authenticate(settings: Settings, api_key: str | None, dev_user: str | None) -> Principal:
+    """Identify the caller from an API key, or from the local-mode header."""
     if api_key:
         for entry in settings.api_keys:
             if hmac.compare_digest(api_key.encode(), entry.key.get_secret_value().encode()):
@@ -55,6 +56,7 @@ def authenticate(settings: Settings, api_key: str | None, dev_user: str | None) 
 
 
 def require(principal: Principal, permission: str) -> Principal:
+    """Raise an error if the caller's role lacks the permission."""
     if principal.role not in PERMISSIONS[permission]:
         raise PermissionDeniedError(
             f"role '{principal.role}' is not allowed to perform '{permission}' actions"

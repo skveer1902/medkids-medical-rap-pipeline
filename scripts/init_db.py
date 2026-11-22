@@ -10,6 +10,7 @@ from app.models.database import SCHEMA_VERSION, init_db, make_engine
 
 
 def main() -> None:
+    """Create the database tables."""
     settings = get_settings()
     engine = make_engine(settings.database_url)
     init_db(engine)

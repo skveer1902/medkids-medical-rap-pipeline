@@ -33,6 +33,7 @@ REVIEWER = Principal("rita-reviewer", "reviewer")
 
 
 def make_settings(tmp_path: Path, **overrides) -> Settings:
+    """Build test settings with an in-memory database and test API keys."""
     base = dict(
         app_env="test",
         database_url="sqlite://",
@@ -51,15 +52,18 @@ def make_settings(tmp_path: Path, **overrides) -> Settings:
 
 
 def h(who: str) -> dict[str, str]:
+    """Return the API-key header for a test user."""
     return {"X-API-Key": KEYS[who]}
 
 
 def load_sample(name: str) -> dict:
+    """Load a sample topic as a dict."""
     raw = json.loads((ROOT / "data" / "sample_topics" / f"{name}.json").read_text())
     return {k: v for k, v in raw.items() if not k.startswith("_")}
 
 
 def lyrics_from(spec: dict[str, list[tuple[str, list[str]]]], title: str = "Test Rap") -> Lyrics:
+    """Build Lyrics from a simple {section: [(text, fact_ids)]} spec."""
     prefixes = {"intro": "in", "chorus": "ch", "outro": "out"}
     sections = []
     for name, lines in spec.items():
@@ -72,16 +76,19 @@ def lyrics_from(spec: dict[str, list[tuple[str, list[str]]]], title: str = "Test
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
+    """Fixture: test settings."""
     return make_settings(tmp_path)
 
 
 @pytest.fixture
 def mock() -> MockProvider:
+    """Fixture: the offline mock AI provider."""
     return MockProvider()
 
 
 @pytest.fixture
 def session(settings: Settings):
+    """Fixture: a database session on a fresh schema."""
     engine = make_engine(settings.database_url)
     init_db(engine)
     s = make_session_factory(engine)()
@@ -92,11 +99,13 @@ def session(settings: Settings):
 
 @pytest.fixture
 def pipeline(settings: Settings, mock: MockProvider) -> Pipeline:
+    """Fixture: a pipeline using the mock provider."""
     return Pipeline(settings, mock)
 
 
 @pytest.fixture
 def heart_topic(session, settings):
+    """Fixture: the Heart sample topic saved to the database."""
     topic = create_topic(session, TopicCreate(**load_sample("heart")), AUTHOR, settings)
     session.commit()
     return topic
@@ -104,6 +113,7 @@ def heart_topic(session, settings):
 
 @pytest.fixture
 def approved_heart(session, heart_topic, mock):
+    """Fixture: the Heart topic with all its extracted facts approved."""
     _, facts = FactExtractor(mock).extract(session, heart_topic)
     approve_facts(session, heart_topic,
                   FactApprovalRequest(approve_fact_ids=[f.fact_key for f in facts if f.status == "candidate"]),
@@ -115,10 +125,12 @@ def approved_heart(session, heart_topic, mock):
 
 @pytest.fixture
 def app(settings: Settings, mock: MockProvider):
+    """Fixture: the FastAPI app wired to the mock provider."""
     return create_app(settings, provider_factory=lambda: mock)
 
 
 @pytest.fixture
 def client(app) -> TestClient:
+    """Fixture: a test HTTP client for the app."""
     with TestClient(app) as c:
         yield c

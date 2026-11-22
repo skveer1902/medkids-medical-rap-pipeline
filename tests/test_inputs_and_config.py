@@ -11,12 +11,14 @@ from tests.conftest import load_sample
 
 
 def topic(**kw):
+    """Build a Heart TopicCreate with some fields overridden."""
     data = load_sample("heart")
     data.update(kw)
     return TopicCreate(**data)
 
 
 def test_valid_sample_topics_parse():
+    """Check that valid sample topics parse."""
     assert topic().topic == "Heart"
     assert TopicCreate(**load_sample("brain")).target_age_min == 7
 
@@ -35,11 +37,13 @@ def test_valid_sample_topics_parse():
     {"unexpected_field": True},                       # extra fields rejected
 ])
 def test_invalid_topic_inputs_rejected(kw):
+    """Check that invalid topic inputs rejected."""
     with pytest.raises(ValidationError):
         topic(**kw)
 
 
 def test_generation_request_limits():
+    """Check that generation request limits."""
     with pytest.raises(ValidationError):
         RapGenerateRequest(topic_id=1, num_verses=9)
     with pytest.raises(ValidationError):
@@ -49,12 +53,14 @@ def test_generation_request_limits():
 
 
 def test_review_request_requires_feedback_for_reject():
+    """Check that review request requires feedback for reject."""
     with pytest.raises(ValidationError):
         ReviewRequest(decision="reject")
     assert ReviewRequest(decision="approve").decision == "approve"
 
 
 def test_production_refuses_dev_auth_and_mock():
+    """Check that production refuses dev auth and mock."""
     with pytest.raises(ValidationError, match="cannot be enabled"):
         Settings(app_env="production", auth_mode="dev", dev_auth_enabled=True, llm_provider="claude",
                  claude_model="m", api_keys=_parse_api_keys("a:author:aaaaaaaaaaaaaaaaaaaa"))
@@ -65,16 +71,19 @@ def test_production_refuses_dev_auth_and_mock():
 
 
 def test_dev_auth_requires_double_opt_in():
+    """Check that dev auth requires double opt in."""
     with pytest.raises(ValidationError, match="DEV_AUTH_ENABLED"):
         Settings(auth_mode="dev")
 
 
 def test_real_provider_requires_model_name():
+    """Check that real provider requires model name."""
     with pytest.raises(ValidationError, match="CLAUDE_MODEL"):
         Settings(llm_provider="claude")
 
 
 def test_score_weights_must_sum_to_one_and_threshold_configurable():
+    """Check that score weights must sum to one and threshold configurable."""
     with pytest.raises(ValidationError):
         Settings(score_weights={"medical_accuracy": 1, "educational_coverage": 1, "age_appropriateness": 0,
                                 "rhyme_rhythm": 0, "memorability": 0})
@@ -85,6 +94,7 @@ def test_score_weights_must_sum_to_one_and_threshold_configurable():
 
 
 def test_api_key_parsing():
+    """Check that api key parsing."""
     keys = _parse_api_keys("alice:reviewer:abcdefghijklmnop, bob:author:qrstuvwxyz123456")
     assert [(k.name, k.role) for k in keys] == [("alice", "reviewer"), ("bob", "author")]
     # older two-reviewer configs still load, mapped to the single reviewer role

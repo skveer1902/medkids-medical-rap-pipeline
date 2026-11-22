@@ -24,6 +24,7 @@ def review(
     settings: Settings = Depends(get_settings_dep),
     principal: Principal = Depends(requires("review")),
 ) -> dict[str, Any]:
+    """POST /api/raps/{id}/review: record the reviewer's decision (approve, changes, comment, reject)."""
     rap = get_rap(db, rap_id)
     decision = review_rap(db, rap, body, principal, settings)
     return {
@@ -36,9 +37,11 @@ def review(
 @router.get("/{rap_id}/history", response_model=RapHistory,
             summary="All versions, validations, evaluations, reviews and status transitions")
 def history(rap_id: int, db: Session = Depends(get_db), _: Principal = Depends(requires("read"))) -> RapHistory:
+    """GET /api/raps/{id}/history: return the full audit trail for a rap."""
     return rap_history(get_rap(db, rap_id))
 
 
 @router.get("/{rap_id}/export", summary="Structured export of an APPROVED rap (409 otherwise)")
 def export(rap_id: int, db: Session = Depends(get_db), _: Principal = Depends(requires("read"))) -> dict[str, Any]:
+    """GET /api/raps/{id}/export: return the approved lyrics and their provenance."""
     return export_payload(get_rap(db, rap_id))

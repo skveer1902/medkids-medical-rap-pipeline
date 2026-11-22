@@ -16,6 +16,7 @@ from app.services.review_service import approvals_for_current_version
 
 
 def _evaluation_dict(ev) -> dict | None:  # type: ignore[no-untyped-def]
+    """Turn a saved evaluation row into a plain dict (or None if there is none)."""
     if ev is None:
         return None
     return {
@@ -27,6 +28,7 @@ def _evaluation_dict(ev) -> dict | None:  # type: ignore[no-untyped-def]
 
 
 def rap_detail(rap: Rap, settings: Settings) -> RapDetail:
+    """Build the full API view of a rap: current lyrics, check reports, score and status."""
     v = current_version(rap)
     med, saf = latest_validation(v, "medical"), latest_validation(v, "safety")
     return RapDetail(
@@ -46,6 +48,7 @@ def rap_detail(rap: Rap, settings: Settings) -> RapDetail:
 
 
 def rap_history(rap: Rap) -> RapHistory:
+    """Collect every version, check, score, review and status change for a rap."""
     validations, evaluations = [], []
     for v in rap.versions:
         for val in v.validations:

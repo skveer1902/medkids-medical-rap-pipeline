@@ -27,13 +27,16 @@ _SECTION_PREFIX = {"intro": "in", "chorus": "ch", "outro": "out"}
 
 
 def section_prefix(section: str) -> str:
+    """Return the short prefix for line IDs in a section, e.g. 'v1' or 'ch'."""
     if section.startswith("verse_"):
         return "v" + section.split("_", 1)[1]
     return _SECTION_PREFIX[section]
 
 
 def canonical_order(sections: list[str]) -> list[str]:
+    """Sort sections into song order: intro, verse 1, chorus, later verses, outro."""
     def key(s: str) -> tuple[int, int]:
+        """Return the sort position for a section name."""
         if s == "intro":
             return (0, 0)
         if s.startswith("verse_"):
@@ -64,6 +67,7 @@ class GeneratedRap:
 
 
 def structural_problems(out: LLMRapOutput, spec: GenerationSpec) -> list[str]:
+    """List problems with the AI's song layout (missing or repeated sections, empty lines)."""
     problems: list[str] = []
     names = [s.section for s in out.sections]
     dupes = {n for n in names if names.count(n) > 1}
@@ -91,6 +95,7 @@ def structural_problems(out: LLMRapOutput, spec: GenerationSpec) -> list[str]:
 
 
 def to_lyrics(out: LLMRapOutput, spec: GenerationSpec, approved_ids: set[str]) -> tuple[Lyrics, list[str]]:
+    """Number the lines and drop citations to facts that were not approved."""
     notes: list[str] = []
     by_name = {s.section: s for s in out.sections}
     sections: list[LyricSection] = []
@@ -117,6 +122,7 @@ class RapGenerator:
         json_max_attempts: int = 3,
         extra_config: dict[str, Any] | None = None,
     ) -> None:
+        """Store the AI provider and the generation settings."""
         self.provider = provider
         self.temperature = temperature if provider.supports_temperature else None
         self.requested_temperature = temperature
@@ -125,6 +131,7 @@ class RapGenerator:
         self.extra_config = extra_config or {}
 
     def generate(self, spec: GenerationSpec) -> GeneratedRap:
+        """Ask the AI for a rap, retry on bad output, and return checked lyrics."""
         if not spec.approved_facts:
             raise LLMOutputValidationError("cannot generate without approved facts")
         run_id = uuid.uuid4().hex
@@ -136,6 +143,7 @@ class RapGenerator:
         in_tok = out_tok = 0
         cost: float | None = None
         last_error = ""
+        # Retry a few times, telling the AI what was wrong last time.
         for attempt in range(1, self.json_max_attempts + 1):
             if attempt > 1:
                 request.prompt = (
@@ -153,6 +161,7 @@ class RapGenerator:
             if result.estimated_cost_usd is not None:
                 cost = (cost or 0.0) + result.estimated_cost_usd
             out: LLMRapOutput = result.data
+            # Reject songs with missing or repeated sections.
             problems = structural_problems(out, spec)
             if problems:
                 last_error = "Structure problems: " + "; ".join(problems)
@@ -160,6 +169,7 @@ class RapGenerator:
                           problems=len(problems))
                 continue
             try:
+                # Number the lines and drop citations to unapproved facts.
                 lyrics, notes = to_lyrics(out, spec, approved_ids)
             except (ValidationError, KeyError, ValueError) as exc:
                 last_error = f"Could not normalise lyrics: {exc}"

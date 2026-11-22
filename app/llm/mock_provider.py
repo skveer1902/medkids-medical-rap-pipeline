@@ -54,6 +54,7 @@ _SIMPLE_SWAPS = {
 
 
 def _tag_for(line: str, used: set[str]) -> str:
+    """Pick a fun filler line that rhymes with the given line, if one is free."""
     lw = last_word(line)
     for tag in _TAG_LINES:
         if tag not in used and words_rhyme(lw, last_word(tag)):
@@ -70,6 +71,7 @@ class MockProvider(LLMProvider):
     name = "mock"
 
     def __init__(self, model: str = "mock-deterministic-v1", **kwargs: Any) -> None:
+        """Set up the offline writer with no waiting between retries."""
         kwargs.setdefault("sleep", lambda _s: None)
         kwargs.setdefault("backoff_base_seconds", 0.0)
         super().__init__(model, **kwargs)
@@ -79,15 +81,18 @@ class MockProvider(LLMProvider):
     # -- scripting -----------------------------------------------------------
 
     def queue(self, task: str, *items: ScriptItem) -> MockProvider:
+        """Queue scripted replies (text or errors) for a task, for tests."""
         self._scripts[task].extend(items)
         return self
 
     def calls_for(self, task: str) -> list[LLMRequest]:
+        """Return every request the mock received for a task."""
         return [r for r in self.requests if r.task == task]
 
     # -- core ------------------------------------------------------------------
 
     def _complete(self, request: LLMRequest) -> LLMResponse:
+        """Answer a request from the script queue, or with the built-in offline handler."""
         self.requests.append(replace(request))  # snapshot: callers mutate the prompt on retries
         queue = self._scripts.get(request.task)
         if queue:
@@ -114,6 +119,7 @@ class MockProvider(LLMProvider):
     # -- default deterministic handlers ---------------------------------------
 
     def _handle_fact_extraction(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: turn each source sentence into a fact quoting itself."""
         facts = []
         for src in ctx.get("sources", []):
             for sentence in split_sentences(src["content"]):
@@ -129,6 +135,7 @@ class MockProvider(LLMProvider):
         return {"facts": facts[: ctx.get("max_facts", 15)]}
 
     def _handle_age_simplification(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: swap hard words for simple ones for ages 4-6."""
         items = []
         for f in ctx.get("facts", []):
             text = f["text"]
@@ -139,12 +146,14 @@ class MockProvider(LLMProvider):
         return {"items": items}
 
     def _handle_rap_generation(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: build a simple rap with one fact per line plus filler lines."""
         spec = ctx["spec"]
         topic = spec["topic_title"]
         facts = spec["approved_facts"]
         used_tags: set[str] = set()
 
         def fact_line(f: dict[str, str]) -> dict[str, Any]:
+            """Turn a fact into a lyric line that cites it."""
             text = (f.get("simplified_text") or f["text"]).rstrip(".")
             return {"text": text[0].upper() + text[1:] + "!", "fact_ids": [f["fact_id"]]}
 
@@ -184,6 +193,7 @@ class MockProvider(LLMProvider):
         }
 
     def _handle_medical_validation(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: mark lines that cite a fact as supported."""
         facts = {f["fact_id"]: f for f in ctx.get("facts", [])}
         claims = []
         for section in ctx["lyrics"]["sections"]:
@@ -212,9 +222,11 @@ class MockProvider(LLMProvider):
         return {"claims": claims}
 
     def _handle_safety_validation(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: report no extra safety findings (rules still run)."""
         return {"findings": []}
 
     def _handle_lyric_revision(self, ctx: dict[str, Any]) -> dict[str, Any]:
+        """Offline: replace each flagged line with an approved fact."""
         facts = ctx.get("facts", [])
         current = {ln["line_id"]: ln["text"] for s in ctx["lyrics"]["sections"] for ln in s["lines"]}
         revised = []
@@ -225,6 +237,7 @@ class MockProvider(LLMProvider):
                 ranked = sorted(facts, key=lambda x: (-overlap_ratio(cur, x["text"]), abs(facts.index(x) - i)))
 
                 def render(f: dict[str, str]) -> str:
+                    """Turn a fact into a lyric line."""
                     t = (f.get("simplified_text") or f["text"]).rstrip(".")
                     return t[0].upper() + t[1:] + "!"
 

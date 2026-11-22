@@ -31,6 +31,7 @@ def normalize_text(text: str) -> str:
 
 
 def normalize_for_match(text: str) -> str:
+    """Lower-case text and strip punctuation so it can be compared."""
     text = unicodedata.normalize("NFKC", text).lower()
     text = text.replace("’", "'").replace("‘", "'")
     text = re.sub(r"[^a-z0-9' ]+", " ", text)
@@ -38,20 +39,24 @@ def normalize_for_match(text: str) -> str:
 
 
 def sha256(text: str) -> str:
+    """Return the SHA-256 hash of text."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def slugify(text: str) -> str:
+    """Turn a title into a URL-safe slug."""
     slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return slug[:60] or "topic"
 
 
 def split_sentences(text: str) -> list[str]:
+    """Split text into sentences."""
     parts = re.split(r"(?<=[.!?])\s+|\n+", text)
     return [p.strip() for p in parts if p and len(p.strip()) > 2]
 
 
 def words(text: str) -> list[str]:
+    """Split text into lower-case words."""
     return _WORD_RE.findall(text.lower().replace("’", "'"))
 
 
@@ -68,6 +73,7 @@ def stem(word: str) -> str:
 
 
 def content_words(text: str) -> set[str]:
+    """Return the stemmed meaningful words in text (no stop words)."""
     return {stem(w) for w in words(text) if w not in STOPWORDS and len(w) > 2}
 
 
@@ -80,6 +86,7 @@ def overlap_ratio(claim: str, reference: str) -> float:
 
 
 def estimate_syllables(word: str) -> int:
+    """Roughly count the syllables in a word."""
     w = re.sub(r"[^a-z]", "", word.lower())
     if not w:
         return 0
@@ -92,10 +99,12 @@ def estimate_syllables(word: str) -> int:
 
 
 def line_syllables(text: str) -> int:
+    """Roughly count the syllables in a line."""
     return sum(estimate_syllables(w) for w in words(text))
 
 
 def last_word(text: str) -> str:
+    """Return the last word of a line (used for rhymes)."""
     ws = words(text)
     return ws[-1] if ws else ""
 
@@ -110,6 +119,7 @@ def rhyme_key(word: str) -> str:
 
 
 def words_rhyme(a: str, b: str) -> bool:
+    """Return True if two words rhyme (roughly)."""
     if not a or not b:
         return False
     if a == b:
@@ -128,6 +138,7 @@ def escape_for_tag(content: str, tag: str) -> str:
 
 
 def wrap_untrusted(tag: str, content: str, **attrs: str) -> str:
+    """Wrap text in tags that mark it as data, not instructions, for the AI."""
     safe_attrs = " ".join(
         f'{k}="{re.sub(r"[^A-Za-z0-9_.:-]", "", str(v))}"' for k, v in attrs.items()
     )

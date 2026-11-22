@@ -1,7 +1,7 @@
 """Curated word lists used by deterministic checks.
 
 These lists are a starting point for the pilot, not a complete or validated
-lexicon. They should be maintained by MEDKids educators and medical reviewers.
+lexicon. They should be maintained by the MEDKids reviewer.
 """
 
 from __future__ import annotations

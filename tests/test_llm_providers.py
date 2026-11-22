@@ -28,10 +28,12 @@ class Out(BaseModel):
 
 
 def req() -> LLMRequest:
+    """Return a simple LLMRequest for provider tests."""
     return LLMRequest(task="t", system="s", prompt="p", temperature=0.3, max_tokens=100)
 
 
 def test_retry_with_exponential_backoff_then_success():
+    """Check that retry with exponential backoff then success."""
     sleeps: list[float] = []
     p = MockProvider(max_retries=3, backoff_base_seconds=1.0, sleep=sleeps.append)
     p.queue("t", LLMRateLimitError("429"), LLMTimeoutError("slow"), '{"answer": 1}')
@@ -42,6 +44,7 @@ def test_retry_with_exponential_backoff_then_success():
 
 
 def test_retries_exhausted_raises():
+    """Check that retries exhausted raises."""
     p = MockProvider(max_retries=2, sleep=lambda s: None)
     p.queue("t", *[LLMServerError("down")] * 5)
     with pytest.raises(LLMServerError):
@@ -51,6 +54,7 @@ def test_retries_exhausted_raises():
 
 
 def test_non_retryable_errors_are_not_retried():
+    """Check that non retryable errors are not retried."""
     p = MockProvider(max_retries=5, sleep=lambda s: None)
     p.queue("t", LLMAuthenticationError("bad key"))
     with pytest.raises(LLMAuthenticationError):
@@ -59,6 +63,7 @@ def test_non_retryable_errors_are_not_retried():
 
 
 def test_json_parsing_failures_bounded():
+    """Check that json parsing failures bounded."""
     p = MockProvider()
     p.queue("t", "nope", '{"answer": "not-int"}', '{"answer": 2')
     with pytest.raises(LLMOutputValidationError) as ei:
@@ -69,11 +74,13 @@ def test_json_parsing_failures_bounded():
 @pytest.mark.parametrize("text", ['{"a": 1}', '```json\n{"a": 1}\n```', 'Here you go: {"a": 1} hope it helps',
                                   '{"a": "brace } inside"}'])
 def test_extract_json_text(text):
+    """Check that extract json text."""
     import json
     assert "a" in json.loads(extract_json_text(text))
 
 
 def test_extract_json_text_errors():
+    """Check that extract json text errors."""
     with pytest.raises(ValueError):
         extract_json_text("no json here")
     with pytest.raises(ValueError):
@@ -81,6 +88,7 @@ def test_extract_json_text_errors():
 
 
 def test_usage_and_cost_tracking():
+    """Check that usage and cost tracking."""
     p = MockProvider(price_input_per_mtok=3.0, price_output_per_mtok=15.0)
     p.queue("t", '{"answer": 3}')
     p.generate_json(LLMRequest(task="t", system="s" * 400, prompt="p" * 400), Out)
@@ -90,6 +98,7 @@ def test_usage_and_cost_tracking():
 
 
 def test_build_provider_defaults_to_mock_and_requires_keys():
+    """Check that build provider defaults to mock and requires keys."""
     assert build_provider(Settings()).name == "mock"
     with pytest.raises(LLMConfigurationError):
         build_provider(Settings(llm_provider="claude", claude_model="some-model"))  # no API key
@@ -99,11 +108,13 @@ def test_build_provider_defaults_to_mock_and_requires_keys():
 
 class FakeErr(Exception):
     def __init__(self, status_code=0):
+        """Fake SDK error carrying an HTTP status code."""
         super().__init__("x")
         self.status_code = status_code
 
 
 def fake_anthropic_module():
+    """Build a stand-in for the anthropic module's error classes."""
     names = ["RateLimitError", "APITimeoutError", "AuthenticationError", "PermissionDeniedError",
              "APIConnectionError", "APIStatusError"]
     mod = types.SimpleNamespace(**{n: type(n, (FakeErr,), {}) for n in names})
@@ -113,10 +124,12 @@ def fake_anthropic_module():
 
 class FakeMessages:
     def __init__(self, behaviour):
+        """Fake messages client that returns or raises the given behaviour."""
         self.behaviour = behaviour
         self.kwargs = None
 
     def create(self, **kwargs):
+        """Record the call arguments and return or raise the scripted result."""
         self.kwargs = kwargs
         if isinstance(self.behaviour, Exception):
             raise self.behaviour
@@ -126,6 +139,7 @@ class FakeMessages:
 
 
 def claude(behaviour=None, **kw):
+    """Build a ClaudeProvider backed by the fake client."""
     messages = FakeMessages(behaviour)
     p = ClaudeProvider("claude-test", "key", client=types.SimpleNamespace(messages=messages),
                        sleep=lambda s: None, **kw)
@@ -134,6 +148,7 @@ def claude(behaviour=None, **kw):
 
 
 def test_claude_request_uses_current_sdk_conventions():
+    """Check that claude request uses current sdk conventions."""
     p, messages = claude(effort="low")
     res = p.generate_json(req(), Out)
     assert res.data.answer == 7 and res.input_tokens == 11
@@ -155,6 +170,7 @@ def test_claude_request_uses_current_sdk_conventions():
     ("APIStatusError", 529, LLMServerError),  # overloaded
 ])
 def test_claude_error_mapping(name, status, expected):
+    """Check that claude error mapping."""
     p, messages = claude()
     messages.behaviour = getattr(p._anthropic, name)(status)
     p.max_retries = 1
@@ -163,10 +179,12 @@ def test_claude_error_mapping(name, status, expected):
 
 
 def test_openai_adapter_uses_responses_api():
+    """Check that openai adapter uses responses api."""
     captured = {}
 
     class Responses:
         def create(self, **kw):
+            """Capture the request and return a fake OpenAI response."""
             captured.update(kw)
             return types.SimpleNamespace(output_text='{"answer": 4}', model="gpt-test", status="completed",
                                          usage=types.SimpleNamespace(input_tokens=9, output_tokens=3))
