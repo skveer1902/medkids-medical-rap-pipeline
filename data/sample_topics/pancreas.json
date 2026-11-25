@@ -1,0 +1,38 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Pancreas",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Pancreas starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How insulin helps regulate blood sugar",
+  "educational_content": "The pancreas is an organ behind the stomach. The pancreas makes a hormone called insulin. Insulin helps sugar move from the blood into the body's cells. Cells use sugar for energy. The pancreas also makes juices that help digest food.",
+  "learning_objectives": [
+    "The pancreas makes insulin.",
+    "Insulin helps sugar move from the blood into cells.",
+    "Cells use sugar for energy."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Eating sugar causes diabetes",
+      "pattern": "\\bsugar\\b.{0,25}\\bcauses?\\b.{0,10}\\bdiabetes\\b"
+    },
+    {
+      "claim": "Insulin is made in the stomach",
+      "pattern": "\\binsulin\\b.{0,25}\\b(made|comes?)\\b.{0,15}\\bstomach\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "pancreas",
+    "insulin",
+    "hormone",
+    "sugar",
+    "energy",
+    "cells"
+  ],
+  "_song_title": "The Sugar Balance Dance"
+}

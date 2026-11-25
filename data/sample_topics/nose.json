@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Nose",
+  "category": "Human Anatomy",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Nose starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the nose detects smells",
+  "educational_content": "The nose helps us smell. Air goes in and out through the nose. Smells travel into the nose with the air. The nose sends smell messages to the brain. Tiny hairs and mucus in the nose catch dust and germs. Smell helps us enjoy the taste of food.",
+  "learning_objectives": [
+    "The nose helps us smell.",
+    "The nose sends smell messages to the brain.",
+    "Hairs and mucus in the nose catch dust and germs."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Picking your nose keeps it clean",
+      "pattern": "\\bpick\\w*\\b.{0,15}\\bnose\\b.{0,20}\\b(clean|healthy|good)\\b"
+    },
+    {
+      "claim": "We smell with our mouth",
+      "pattern": "\\bsmell\\w*\\b.{0,15}\\bwith\\b.{0,10}\\bmouths?\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "nose",
+    "smell",
+    "air",
+    "mucus",
+    "brain"
+  ],
+  "_song_title": "The Super Sniffer"
+}

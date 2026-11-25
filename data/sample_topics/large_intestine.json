@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Large Intestine",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Large Intestine starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the colon absorbs water",
+  "educational_content": "The large intestine is also called the colon. Food the body cannot use moves into the large intestine. The large intestine takes in water from the leftover food. Saving water helps keep the body from drying out. What is left becomes solid waste that leaves the body.",
+  "learning_objectives": [
+    "The large intestine is also called the colon.",
+    "The large intestine takes in water from leftover food.",
+    "Leftover waste leaves the body."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The large intestine digests most of our food",
+      "pattern": "\\b(large\\s+intestine|colon)\\b.{0,25}\\bdigests?\\b.{0,10}\\bmost\\b"
+    },
+    {
+      "claim": "The colon makes urine",
+      "pattern": "\\bcolon\\b.{0,20}\\b(makes?|produces?)\\b.{0,10}\\burine\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "large intestine",
+    "colon",
+    "water",
+    "waste"
+  ],
+  "_song_title": "The Water Saver"
+}

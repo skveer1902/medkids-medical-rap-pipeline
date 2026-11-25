@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Liver",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Liver starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the liver processes nutrients",
+  "educational_content": "The liver is a large organ on the right side of the belly. The liver helps process nutrients from food. The liver stores energy that the body can use later. The liver helps clean harmful things out of the blood. The liver makes bile, which helps break down fats.",
+  "learning_objectives": [
+    "The liver helps process nutrients from food.",
+    "The liver stores energy for later.",
+    "The liver helps clean the blood."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The liver pumps blood",
+      "pattern": "\\bliver\\b.{0,20}\\bpumps?\\b"
+    },
+    {
+      "claim": "The liver makes urine",
+      "pattern": "\\bliver\\b.{0,20}\\b(makes?|produces?)\\b.{0,10}\\burine\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "liver",
+    "organ",
+    "nutrients",
+    "bile",
+    "energy"
+  ],
+  "_song_title": "The Liver Helper"
+}

@@ -317,6 +317,8 @@ class ChorusRequirements(StrictModel):
 
 class RapGenerateRequest(StrictModel):
     topic_id: int
+    # Optional song title chosen by the author; replaces the title the AI suggests.
+    title: str | None = Field(default=None, min_length=1, max_length=80)
     age_band: AgeBand | None = None
     style: RapStyle = "playful"
     num_verses: int = Field(default=2, ge=2, le=4)

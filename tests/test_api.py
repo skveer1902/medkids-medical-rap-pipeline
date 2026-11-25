@@ -264,3 +264,12 @@ def test_malformed_generation_output_maps_to_502(client, mock):
     mock.queue("rap_generation", *["garbage"] * 3)
     r = client.post("/api/raps/generate", json={"topic_id": tid}, headers=h("author"))
     assert r.status_code == 502 and r.json()["error"]["code"] == "llm_invalid_output"
+
+
+def test_generate_uses_author_song_title(client):
+    """Check that an optional song title replaces the AI's suggested title."""
+    tid = ready_topic(client)
+    r = client.post("/api/raps/generate", json={"topic_id": tid, "title": "The Heartbeat Hustle"}, headers=h("author"))
+    assert r.status_code == 201, r.text
+    rap = client.get(f"/api/raps/{r.json()['raps'][0]['id']}", headers=h("author")).json()
+    assert rap["title"] == "The Heartbeat Hustle" and rap["lyrics"]["title"] == "The Heartbeat Hustle"

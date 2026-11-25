@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Immune System",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Immune System starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How immune cells help protect against infections",
+  "educational_content": "The immune system helps protect the body from germs. White blood cells are germ fighters in the blood. White blood cells find germs and help get rid of them. The skin is a barrier that helps keep germs out. Vaccines teach the immune system to recognize germs. Washing hands helps stop germs from spreading.",
+  "learning_objectives": [
+    "The immune system helps protect the body from germs.",
+    "White blood cells fight germs.",
+    "Vaccines teach the immune system to recognize germs."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Antibiotics kill viruses",
+      "pattern": "\\bantibiotics?\\b.{0,20}\\b(kill|fight|treat|cure)\\w*\\b.{0,10}\\bviruse?s?\\b"
+    },
+    {
+      "claim": "Vaccines give you the illness",
+      "pattern": "\\bvaccines?\\b.{0,20}\\bgives?\\b.{0,15}\\b(illness|disease|sickness)\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "immune system",
+    "white blood cells",
+    "germs",
+    "vaccines",
+    "skin"
+  ],
+  "_song_title": "The Germ Fighter Squad"
+}

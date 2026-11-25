@@ -165,6 +165,9 @@ class Pipeline:
         for _ in range(req.num_candidates):
             # Ask the AI for one song candidate.
             gen = self.generator.generate(spec)
+            if req.title and req.title.strip():
+                # The author picked a title: use it instead of the AI's.
+                gen.lyrics.title = req.title.strip()
             rap = Rap(
                 topic_id=topic.id, status="draft", age_band=band, style=req.style,
                 generation_request={**req.model_dump(), "simplification_notes": notes,

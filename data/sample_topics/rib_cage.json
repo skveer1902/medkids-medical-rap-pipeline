@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Rib Cage",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Rib Cage starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How ribs protect the heart and lungs",
+  "educational_content": "The rib cage is made of bones called ribs. Most people have 12 pairs of ribs. The rib cage protects the heart and lungs. The ribs join the breastbone in the front and the spine in the back. The rib cage moves up and out when we breathe in.",
+  "learning_objectives": [
+    "The rib cage is made of ribs.",
+    "The rib cage protects the heart and lungs.",
+    "The rib cage moves when we breathe."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Boys have fewer ribs than girls",
+      "pattern": "\\b(boys?|men|males?)\\b.{0,25}\\bfewer\\b.{0,10}\\bribs?\\b"
+    },
+    {
+      "claim": "The ribs are made of muscle",
+      "pattern": "\\bribs?\\b.{0,15}\\b(are|is)\\b.{0,10}\\bmade\\s+of\\s+muscles?\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "rib cage",
+    "ribs",
+    "breastbone",
+    "heart",
+    "lungs"
+  ],
+  "_song_title": "The Rib Cage Rap"
+}

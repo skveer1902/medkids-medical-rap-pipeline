@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Joints",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Joints starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How joints allow movement",
+  "educational_content": "A joint is a place where two bones meet. Joints let the body bend, twist and move. Knees and elbows are hinge joints that bend like a door. Shoulders and hips are ball-and-socket joints that move in many directions. Muscles pull on bones to move them at the joints.",
+  "learning_objectives": [
+    "A joint is where two bones meet.",
+    "Joints let the body bend, twist and move.",
+    "Muscles pull on bones to move them at the joints."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Cracking your knuckles causes arthritis",
+      "pattern": "\\bcrack\\w*\\b.{0,20}\\bknuckles?\\b.{0,25}\\b(causes?|gives?)\\b"
+    },
+    {
+      "claim": "Joints are made of muscle",
+      "pattern": "\\bjoints?\\b.{0,15}\\b(are|is)\\b.{0,10}\\bmade\\s+of\\s+muscles?\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "joint",
+    "hinge joints",
+    "ball-and-socket",
+    "bones",
+    "muscles"
+  ],
+  "_song_title": "Bend, Twist, Move!"
+}

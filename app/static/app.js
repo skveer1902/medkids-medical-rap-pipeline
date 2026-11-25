@@ -403,6 +403,7 @@
       num_candidates: Number(f.num_candidates.value), include_intro: f.include_intro.checked, include_outro: f.include_outro.checked,
     };
     if (f.age_band.value) body.age_band = f.age_band.value;
+    if (f.title && f.title.value.trim()) body.title = f.title.value.trim(); // optional song title
     if (f.auto_revise) body.auto_revise = f.auto_revise.checked;
     if (f.demo_inject_error && f.demo_inject_error.checked) body.demo_inject_error = true; // demo page only
     await busy(f.querySelector("[type=submit]"), async () => {

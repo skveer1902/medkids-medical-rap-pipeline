@@ -1,0 +1,38 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Tongue",
+  "category": "Human Anatomy",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Tongue starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the tongue helps us taste and speak",
+  "educational_content": "The tongue is a muscle. Taste buds on the tongue help us taste food. We can taste sweet, salty, sour, bitter and savory. The tongue moves food around when we chew. The tongue helps us talk and make sounds.",
+  "learning_objectives": [
+    "The tongue is a muscle.",
+    "Taste buds on the tongue help us taste food.",
+    "The tongue helps us talk."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Each part of the tongue tastes only one flavor",
+      "pattern": "\\bonly\\b.{0,20}\\b(tastes?|sweet|salty|sour|bitter)\\b.{0,25}\\b(tip|back|sides?)\\b"
+    },
+    {
+      "claim": "The tongue is a bone",
+      "pattern": "\\btongue\\b.{0,15}\\bis\\b.{0,8}\\bbone\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "tongue",
+    "muscle",
+    "taste buds",
+    "sweet",
+    "salty",
+    "sour"
+  ],
+  "_song_title": "Taste Bud Party"
+}

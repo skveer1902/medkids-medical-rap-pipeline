@@ -129,6 +129,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--pulse); outline:
   max-width: none; grid-template-columns: repeat(4, minmax(120px, 1fr)) auto auto auto auto; align-items: end;
   background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 1rem; margin-bottom: 1.5rem;
 }
+/* The song-title box takes the whole first row of the form. */
+.form.gen .field.wide { grid-column: 1 / -1; }
 
 /* ---------- topic summary ---------- */
 .topic-summary { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2rem; }

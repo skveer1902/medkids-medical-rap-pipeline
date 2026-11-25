@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Spine",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Spine starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the spine supports and protects",
+  "educational_content": "The spine is also called the backbone. The spine is made of small bones called vertebrae. The spine helps hold the body up. The spine protects the spinal cord, which carries messages between the brain and the body. Soft discs between the vertebrae let the spine bend.",
+  "learning_objectives": [
+    "The spine is made of small bones called vertebrae.",
+    "The spine helps hold the body up.",
+    "The spine protects the spinal cord."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The spine is one single bone",
+      "pattern": "\\bspine\\b.{0,20}\\b(one|single)\\b.{0,10}\\bbone\\b"
+    },
+    {
+      "claim": "Cracking your back makes your spine stronger",
+      "pattern": "\\bcrack\\w*\\b.{0,20}\\b(back|spine)\\b.{0,25}\\bstronger\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "spine",
+    "backbone",
+    "vertebrae",
+    "spinal cord",
+    "discs"
+  ],
+  "_song_title": "The Backbone Beat"
+}

@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Nerves",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Nerves starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How nerves carry signals",
+  "educational_content": "Nerves are like tiny wires that carry messages. Nerves carry signals between the brain and the body. Nerves in the skin send messages about touch, heat and cold. The brain sends signals through nerves to tell muscles to move. The spinal cord is a big bundle of nerves inside the spine.",
+  "learning_objectives": [
+    "Nerves carry signals between the brain and the body.",
+    "Nerves in the skin send messages about touch.",
+    "The brain uses nerves to tell muscles to move."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "We only use ten percent of our brain",
+      "pattern": "\\b(10|ten)\\s*(%|percent)\\b"
+    },
+    {
+      "claim": "Nerves carry blood",
+      "pattern": "\\bnerves?\\b.{0,15}\\bcarr(y|ies)\\b.{0,10}\\bblood\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "nerves",
+    "signals",
+    "brain",
+    "spinal cord",
+    "muscles"
+  ],
+  "_song_title": "The Message Messengers"
+}

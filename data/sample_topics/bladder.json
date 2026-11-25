@@ -1,0 +1,36 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Bladder",
+  "category": "Human Anatomy",
+  "target_age_min": 4,
+  "target_age_max": 6,
+  "source_title": "MEDKids Bladder starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the bladder stores urine",
+  "educational_content": "The bladder is a stretchy bag that holds urine. The kidneys make urine. Urine flows from the kidneys down to the bladder. The bladder stretches as it fills up. A full bladder tells us it is time for the toilet.",
+  "learning_objectives": [
+    "The bladder holds urine.",
+    "The kidneys make urine.",
+    "The bladder stretches as it fills up."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The bladder makes urine",
+      "pattern": "\\bbladder\\b.{0,20}\\b(makes?|produces?)\\b.{0,10}\\burine\\b"
+    },
+    {
+      "claim": "Holding your pee for a long time is healthy",
+      "pattern": "\\bhold\\w*\\b.{0,20}\\b(pee|urine)\\b.{0,25}\\bhealthy\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "bladder",
+    "urine",
+    "kidneys",
+    "toilet"
+  ],
+  "_song_title": "The Potty Time Song"
+}

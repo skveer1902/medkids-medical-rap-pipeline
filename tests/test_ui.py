@@ -37,10 +37,13 @@ def test_samples_require_auth_and_match_topic_schema(client):
     """Check that samples require auth and match topic schema."""
     assert client.get("/api/samples").status_code == 401
     samples = client.get("/api/samples", headers=h("author")).json()
-    assert {"Heart", "Brain", "Lungs", "Bones", "Stomach", "Eyes", "Teeth", "Skin", "Muscles", "Kidneys"} == {s["topic"] for s in samples}
+    assert {"Heart", "Brain", "Lungs", "Bones", "Stomach", "Eyes", "Teeth", "Skin", "Muscles", "Kidneys",
+            "Ears", "Nose", "Tongue", "Liver", "Small Intestine", "Large Intestine", "Blood", "Spine", "Joints",
+            "Nerves", "Bladder", "Pancreas", "Rib Cage", "Diaphragm", "Immune System"} == {s["topic"] for s in samples}
     assert all("_comment" not in s for s in samples)
-    created = client.post("/api/topics", json=samples[0], headers=h("author"))
-    assert created.status_code == 201
+    for sample in samples:  # every sample must be a valid new topic
+        created = client.post("/api/topics", json=sample, headers=h("author"))
+        assert created.status_code == 201, (sample["topic"], created.text)
 
 
 def test_health_reports_local_mode(tmp_path, mock):

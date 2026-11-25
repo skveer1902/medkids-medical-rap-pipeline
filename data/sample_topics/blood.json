@@ -1,0 +1,38 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Blood",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Blood starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How blood carries oxygen and nutrients",
+  "educational_content": "Blood flows through the body in tubes called blood vessels. Red blood cells carry oxygen from the lungs to the body. Blood carries nutrients from food to every part of the body. White blood cells help fight germs. Platelets help a scrape heal by forming a scab. The heart pumps blood all around the body.",
+  "learning_objectives": [
+    "Red blood cells carry oxygen.",
+    "Blood carries nutrients to every part of the body.",
+    "White blood cells help fight germs."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "Blood is blue inside the body",
+      "pattern": "\\bblood\\b.{0,20}\\b(is|turns?)\\b.{0,10}\\bblue\\b"
+    },
+    {
+      "claim": "The heart makes blood",
+      "pattern": "\\bheart\\b.{0,20}\\b(makes?|produces?)\\b.{0,10}\\bblood\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "red blood cells",
+    "white blood cells",
+    "platelets",
+    "oxygen",
+    "nutrients",
+    "blood vessels"
+  ],
+  "_song_title": "The Blood Cell Boogie"
+}

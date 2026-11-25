@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Small Intestine",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Small Intestine starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How nutrients enter the bloodstream",
+  "educational_content": "The small intestine is a long, twisty tube in the belly. Food moves from the stomach into the small intestine. The small intestine finishes breaking down food. Nutrients from food pass through the walls of the small intestine into the blood. Tiny finger-like bumps called villi help the small intestine take in nutrients. The bloodstream carries the nutrients to the whole body.",
+  "learning_objectives": [
+    "Food moves from the stomach into the small intestine.",
+    "Nutrients pass from the small intestine into the blood.",
+    "Villi help the small intestine take in nutrients."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The small intestine is shorter than the large intestine",
+      "pattern": "\\bsmall\\s+intestine\\b.{0,20}\\bshorter\\b"
+    },
+    {
+      "claim": "Food is digested only in the stomach",
+      "pattern": "\\bonly\\b.{0,10}\\bin\\s+the\\s+stomach\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "small intestine",
+    "nutrients",
+    "villi",
+    "bloodstream",
+    "stomach"
+  ],
+  "_song_title": "The Nutrient Express"
+}

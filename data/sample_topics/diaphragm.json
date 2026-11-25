@@ -1,0 +1,37 @@
+{
+  "_comment": "DEMONSTRATION DATA. Starter facts for pipeline testing only; NOT a substitute for formally approved MEDKids source documents. Must be confirmed by the reviewer before any real use.",
+  "topic": "Diaphragm",
+  "category": "Human Anatomy",
+  "target_age_min": 7,
+  "target_age_max": 10,
+  "source_title": "MEDKids Diaphragm starter card (demonstration data, unreviewed)",
+  "source_uri": null,
+  "source_version": "demo-0.1",
+  "source_is_approved": false,
+  "is_demo_data": true,
+  "primary_objective": "How the diaphragm helps us breathe",
+  "educational_content": "The diaphragm is a dome-shaped muscle under the lungs. The diaphragm helps us breathe. When the diaphragm tightens and moves down, air flows into the lungs. When the diaphragm relaxes and moves up, air flows out of the lungs. The diaphragm works without us having to think about it. Hiccups happen when the diaphragm suddenly tightens.",
+  "learning_objectives": [
+    "The diaphragm is a muscle under the lungs.",
+    "The diaphragm helps us breathe.",
+    "When the diaphragm moves down, air flows into the lungs."
+  ],
+  "forbidden_claims": [
+    {
+      "claim": "The diaphragm is a bone",
+      "pattern": "\\bdiaphragm\\b.{0,15}\\bis\\b.{0,10}\\bbone\\b"
+    },
+    {
+      "claim": "The lungs are muscles that pump air",
+      "pattern": "\\blungs?\\b.{0,15}\\b(are|is)\\b.{0,10}\\bmuscles?\\b"
+    }
+  ],
+  "required_vocabulary": [
+    "diaphragm",
+    "muscle",
+    "lungs",
+    "breathe",
+    "air"
+  ],
+  "_song_title": "The Breathing Muscle Beat"
+}
